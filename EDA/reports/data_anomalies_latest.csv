@@ -1,0 +1,11 @@
+check,n_institutions,pct_of_institutions
+net price below zero,12,0.19
+tuition below zero,0,0
+graduation rate above 1,0,0
+retention rate above 1,0,0
+PCTPELL above 1,0,0
+PCTFLOAN above 1,0,0
+zero undergraduate enrollment (UGDS == 0),11,0.18
+earnings below zero,0,0
+debt-to-earnings above 5,0,0
+net price above sticker tuition (grants exceed tuition),1225,19.53

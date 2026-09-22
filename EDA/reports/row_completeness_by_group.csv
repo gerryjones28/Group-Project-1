@@ -1,0 +1,10 @@
+control_label,level_label,institutions,mean_pct_complete,median_pct_complete,share_high_dq,mean_privacy_suppressed
+Private for-profit,2-year,526,64.9,70,0,0.06
+Private nonprofit,2-year,134,66.3,70,0,0.3
+Public,2-year,891,72.4,80,0,0.25
+Private for-profit,4-year,388,62.5,80,10.8,0.11
+Private nonprofit,4-year,1705,74.4,100,54,0.23
+Public,4-year,917,87.1,100,57.5,0.05
+Private for-profit,Less-than-2-year,1411,60,70,0,0.2
+Private nonprofit,Less-than-2-year,62,54,60,0,0.4
+Public,Less-than-2-year,239,57,60,0,0.62

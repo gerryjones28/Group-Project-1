@@ -1,0 +1,11 @@
+metric,scorecard_label,source_columns,n_institutions,n_nonmissing,pct_complete,n_privacy_suppressed,pct_privacy_suppressed,n_unique,pct_unique,median,quality_score,coverage_flag
+UGDS,Enrollment of undergraduate certificate/degree-seeking students,UGDS,6273,5478,87.3,0,0,2708,49.4,563.5,87.3,thin (50-90%)
+PCTPELL,Percentage of undergraduates who receive a Pell Grant,PCTPELL,6273,5445,86.8,0,0,3647,67,0.4,86.8,thin (50-90%)
+PCTFLOAN,Percent of all undergraduate students receiving a federal student loan,PCTFLOAN,6273,5445,86.8,0,0,3554,65.3,0.43,86.8,thin (50-90%)
+earn_p10,earn_p10,MD_EARN_WNE_P10,6273,5127,81.7,0,0,3779,73.7,40782,81.7,thin (50-90%)
+grad_rate,grad_rate,C150_4 + C150_L4,6273,5114,81.5,0,0,2958,57.8,0.58,81.5,thin (50-90%)
+net_price,net_price,NPT4_PUB + NPT4_PRIV,6273,5035,80.3,0,0,4673,92.8,17137,80.3,thin (50-90%)
+grad_debt_mdn,grad_debt_mdn,GRAD_DEBT_MDN,6273,4777,76.2,1228,19.6,1622,34,13271,61.2,thin (50-90%)
+TUITIONFEE_IN,In-state tuition and fees,TUITIONFEE_IN,6273,3612,57.6,0,0,2730,75.6,11783,57.6,thin (50-90%)
+RET_FT4,"First-time, full-time student retention rate at four-year institutions",RET_FT4,6273,2058,32.8,0,0,1366,66.4,0.76,32.8,unusable (<50%)
+ADM_RATE,Admission rate,ADM_RATE,6273,1910,30.4,0,0,1521,79.6,0.78,30.4,unusable (<50%)

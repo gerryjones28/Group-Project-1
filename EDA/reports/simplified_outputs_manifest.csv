@@ -1,0 +1,6 @@
+output,rows,columns,cells,size_MB,opens_in_google_sheets
+institution_core_latest.csv,6273,143,897039,5.97,TRUE
+institution_core_latest.xlsx,6273,143,897039,3.72,TRUE
+field_of_study_core_latest.csv,227980,23,5243540,41.78,TRUE
+field_of_study_by_cip2_latest.csv,375,12,4500,0.03,TRUE
+panel_core_1996_2025.csv,208759,26,5427734,27.43,TRUE

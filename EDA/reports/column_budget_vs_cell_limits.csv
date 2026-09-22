@@ -1,0 +1,5 @@
+scenario,max_cols_for_gsheets,max_cols_for_comfort
+600 rows (single page),16666,8333
+"6,273 rows (all institutions, most-recent snapshot)",1594,797
+"228,000 rows (field-of-study snapshot)",43,21
+"210,000 rows (30-year panel)",47,23

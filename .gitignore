@@ -1,8 +1,70 @@
+# ===========================================================================
+#  Group Project I - The College Scorecard Dataset
+#
+#  This repo is for CODE and small STATS. The datasets stay on the group
+#  drive / the Scorecard website: the raw files are 60-150 MB each (3.7 GB
+#  extracted), which is over GitHub's 100 MB hard file limit, so nothing
+#  under data/ is ever committed.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# R / RStudio session files
+# ---------------------------------------------------------------------------
 .Renviron
 .Renviron.*
 .Rhistory
 .RData
+.RDataTmp
+.Ruserdata
 .Rproj.user/
+*.Rproj
+
+# ---------------------------------------------------------------------------
+# OS / editor junk
+# ---------------------------------------------------------------------------
 .DS_Store
-.Renviron
-data/Most-Recent-Cohorts-Field-of-Study.csv
+Thumbs.db
+*.swp
+
+# ---------------------------------------------------------------------------
+# Excel lock files created while a workbook is open (e.g. ~$codebook.xlsx)
+# ---------------------------------------------------------------------------
+~$*
+
+# ---------------------------------------------------------------------------
+# Spreadsheets and archives - no reason for either to be versioned here
+# ---------------------------------------------------------------------------
+*.xls
+*.xlsx
+*.zip
+*.7z
+*.gz
+
+# ===========================================================================
+# RAW DATA - ignored on purpose; this block is the reason this file exists
+# ===========================================================================
+#   data/College_Scorecard_Raw_Data_06032026/     3.7 GB, 40 CSV files
+#       MERGED1996_97_PP.csv ... MERGED2025_26_PP.csv   30 files, ~60-100 MB
+#       FieldOfStudyData1415_1516_PP.csv ... (8 files)   ~20-60 MB each
+#       Most-Recent-Cohorts-Institution.csv              95 MB / 20.8 M cells
+#       Most-Recent-Cohorts-Field-of-Study.csv          146 MB / 40.6 M cells
+#   data/College_Scorecard_Raw_Data_06102026.zip    448 MB duplicate download
+#   anything else dropped into data/                ignored by the rule below
+/data/*
+
+# The one deliberate exception: the official 712 KB codebook. The EDA scripts
+# read it to decode coded columns (CONTROL, ICLEVEL, REGION, PREDDEG, LOCALE,
+# ...), it is tiny, and partners need it to run anything - so it ships with
+# the clone. To exclude data/ with no exceptions at all, delete this line and
+# run:  git rm --cached data/CollegeScorecardDataDictionary.xlsx
+!/data/CollegeScorecardDataDictionary.xlsx
+
+# ===========================================================================
+# EDA/ generated extracts - reproducible and up to 42 MB, so not committed
+#   rebuild with:  Rscript EDA/scripts/02_build_simplified_data.R
+# ===========================================================================
+/EDA/simplified/
+
+# EDA/reports/*.csv, EDA/reports/EDA_SUMMARY.md and EDA/figures/*.png ARE
+# tracked on purpose: those are the small tables, stats and figures partners
+# need without re-running the analysis.

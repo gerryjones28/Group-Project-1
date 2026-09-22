@@ -1,0 +1,4 @@
+control_label,level_label,institutions,spearman_net_price_vs_earnings,median_earnings,median_net_price
+Private for-profit,4-year,42,0.38,47342.5,30743
+Private nonprofit,4-year,920,0.39,54877.5,23665
+Public,4-year,527,0.34,54670,14977

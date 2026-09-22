@@ -1,0 +1,42 @@
+group,file,rows,cols,cells,mb,opens_in_gsheets,opens_in_excel,note,bytes,fits_gsheets_cells,fits_gsheets_size,fits_excel_shape,cells_left_under_gsheets_limit
+field-of-study file by year,FieldOfStudyData1415_1516_PP.csv,214486,178,38178508,131.1,"no (38,178,508 cells > 10,000,000; 131.1 MB > 100 MB)","yes, but very slow / memory hungry","",137460141,FALSE,FALSE,TRUE,-28178508
+field-of-study file by year,FieldOfStudyData1516_1617_PP.csv,219115,178,39002470,134,"no (39,002,470 cells > 10,000,000; 134 MB > 100 MB)","yes, but very slow / memory hungry","",140493422,FALSE,FALSE,TRUE,-29002470
+field-of-study file by year,FieldOfStudyData1617_1718_PP.csv,222942,178,39683676,137.5,"no (39,683,676 cells > 10,000,000; 137.5 MB > 100 MB)","yes, but very slow / memory hungry","",144178704,FALSE,FALSE,TRUE,-29683676
+field-of-study file by year,FieldOfStudyData1718_1819_PP.csv,228748,178,40717144,142.8,"no (40,717,144 cells > 10,000,000; 142.8 MB > 100 MB)","yes, but very slow / memory hungry","",149788400,FALSE,FALSE,TRUE,-30717144
+field-of-study file by year,FieldOfStudyData1819_1920_PP.csv,233811,178,41618358,145.4,"no (41,618,358 cells > 10,000,000; 145.4 MB > 100 MB)","yes, but very slow / memory hungry","",152469671,FALSE,FALSE,TRUE,-31618358
+field-of-study file by year,FieldOfStudyData1920_2021_PP.csv,229188,178,40795464,138.6,"no (40,795,464 cells > 10,000,000; 138.6 MB > 100 MB)","yes, but very slow / memory hungry","",145299805,FALSE,FALSE,TRUE,-30795464
+field-of-study file by year,FieldOfStudyData2021_2122_PP.csv,204333,178,36371274,123,"no (36,371,274 cells > 10,000,000; 123 MB > 100 MB)","yes, but very slow / memory hungry","",128983627,FALSE,FALSE,TRUE,-26371274
+field-of-study file by year,FieldOfStudyData2122_2223_PP.csv,227980,178,40580440,139.3,"no (40,580,440 cells > 10,000,000; 139.3 MB > 100 MB)","yes, but very slow / memory hungry","",146036063,FALSE,FALSE,TRUE,-30580440
+yearly institution file (MERGED),MERGED1996_97_PP.csv,7007,3308,23179156,65.9,"no (23,179,156 cells > 10,000,000)","yes, but very slow / memory hungry","",69100918,FALSE,TRUE,TRUE,-13179156
+yearly institution file (MERGED),MERGED1997_98_PP.csv,6934,3308,22937672,67.7,"no (22,937,672 cells > 10,000,000)","yes, but very slow / memory hungry","",71034550,FALSE,TRUE,TRUE,-12937672
+yearly institution file (MERGED),MERGED1998_99_PP.csv,6702,3308,22170216,66.1,"no (22,170,216 cells > 10,000,000)","yes, but very slow / memory hungry","",69282796,FALSE,TRUE,TRUE,-12170216
+yearly institution file (MERGED),MERGED1999_00_PP.csv,6609,3308,21862572,68,"no (21,862,572 cells > 10,000,000)","yes, but very slow / memory hungry","",71263022,FALSE,TRUE,TRUE,-11862572
+yearly institution file (MERGED),MERGED2000_01_PP.csv,6654,3308,22011432,69.1,"no (22,011,432 cells > 10,000,000)","yes, but very slow / memory hungry","",72501319,FALSE,TRUE,TRUE,-12011432
+yearly institution file (MERGED),MERGED2001_02_PP.csv,6725,3308,22246300,71.4,"no (22,246,300 cells > 10,000,000)","yes, but very slow / memory hungry","",74817846,FALSE,TRUE,TRUE,-12246300
+yearly institution file (MERGED),MERGED2002_03_PP.csv,6652,3308,22004816,71.6,"no (22,004,816 cells > 10,000,000)","yes, but very slow / memory hungry","",75105553,FALSE,TRUE,TRUE,-12004816
+yearly institution file (MERGED),MERGED2003_04_PP.csv,6673,3308,22074284,73.9,"no (22,074,284 cells > 10,000,000)","yes, but very slow / memory hungry","",77442425,FALSE,TRUE,TRUE,-12074284
+yearly institution file (MERGED),MERGED2004_05_PP.csv,6747,3308,22319076,75.7,"no (22,319,076 cells > 10,000,000)","yes, but very slow / memory hungry","",79374521,FALSE,TRUE,TRUE,-12319076
+yearly institution file (MERGED),MERGED2005_06_PP.csv,6899,3308,22821892,79.3,"no (22,821,892 cells > 10,000,000)","yes, but very slow / memory hungry","",83186680,FALSE,TRUE,TRUE,-12821892
+yearly institution file (MERGED),MERGED2006_07_PP.csv,6951,3308,22993908,79.1,"no (22,993,908 cells > 10,000,000)","yes, but very slow / memory hungry","",82962183,FALSE,TRUE,TRUE,-12993908
+yearly institution file (MERGED),MERGED2007_08_PP.csv,6971,3308,23060068,81.3,"no (23,060,068 cells > 10,000,000)","yes, but very slow / memory hungry","",85219411,FALSE,TRUE,TRUE,-13060068
+yearly institution file (MERGED),MERGED2008_09_PP.csv,7055,3308,23337940,82.1,"no (23,337,940 cells > 10,000,000)","yes, but very slow / memory hungry","",86083833,FALSE,TRUE,TRUE,-13337940
+yearly institution file (MERGED),MERGED2009_10_PP.csv,7217,3308,23873836,86.1,"no (23,873,836 cells > 10,000,000)","yes, but very slow / memory hungry","",90334394,FALSE,TRUE,TRUE,-13873836
+yearly institution file (MERGED),MERGED2010_11_PP.csv,7470,3308,24710760,89.2,"no (24,710,760 cells > 10,000,000)","yes, but very slow / memory hungry","",93488674,FALSE,TRUE,TRUE,-14710760
+yearly institution file (MERGED),MERGED2011_12_PP.csv,7746,3308,25623768,94.6,"no (25,623,768 cells > 10,000,000)","yes, but very slow / memory hungry","",99159185,FALSE,TRUE,TRUE,-15623768
+yearly institution file (MERGED),MERGED2012_13_PP.csv,7862,3308,26007496,96.2,"no (26,007,496 cells > 10,000,000)","yes, but very slow / memory hungry","",100916674,FALSE,TRUE,TRUE,-16007496
+yearly institution file (MERGED),MERGED2013_14_PP.csv,7869,3308,26030652,97.8,"no (26,030,652 cells > 10,000,000)","yes, but very slow / memory hungry","",102532408,FALSE,TRUE,TRUE,-16030652
+yearly institution file (MERGED),MERGED2014_15_PP.csv,7766,3308,25689928,96,"no (25,689,928 cells > 10,000,000)","yes, but very slow / memory hungry","",100684349,FALSE,TRUE,TRUE,-15689928
+yearly institution file (MERGED),MERGED2015_16_PP.csv,7666,3308,25359128,94,"no (25,359,128 cells > 10,000,000)","yes, but very slow / memory hungry","",98514023,FALSE,TRUE,TRUE,-15359128
+yearly institution file (MERGED),MERGED2016_17_PP.csv,7238,3308,23943304,91.5,"no (23,943,304 cells > 10,000,000)","yes, but very slow / memory hungry","",95922883,FALSE,TRUE,TRUE,-13943304
+yearly institution file (MERGED),MERGED2017_18_PP.csv,7112,3308,23526496,88.3,"no (23,526,496 cells > 10,000,000)","yes, but very slow / memory hungry","",92604002,FALSE,TRUE,TRUE,-13526496
+yearly institution file (MERGED),MERGED2018_19_PP.csv,6807,3308,22517556,87.7,"no (22,517,556 cells > 10,000,000)","yes, but very slow / memory hungry","",91989006,FALSE,TRUE,TRUE,-12517556
+yearly institution file (MERGED),MERGED2019_20_PP.csv,6694,3308,22143752,89.3,"no (22,143,752 cells > 10,000,000)","yes, but very slow / memory hungry","",93647319,FALSE,TRUE,TRUE,-12143752
+yearly institution file (MERGED),MERGED2020_21_PP.csv,6681,3308,22100748,71.8,"no (22,100,748 cells > 10,000,000)","yes, but very slow / memory hungry","",75304811,FALSE,TRUE,TRUE,-12100748
+yearly institution file (MERGED),MERGED2021_22_PP.csv,6543,3308,21644244,63.4,"no (21,644,244 cells > 10,000,000)","yes, but very slow / memory hungry","",66503531,FALSE,TRUE,TRUE,-11644244
+yearly institution file (MERGED),MERGED2022_23_PP.csv,6484,3308,21449072,63,"no (21,449,072 cells > 10,000,000)","yes, but very slow / memory hungry","",66010921,FALSE,TRUE,TRUE,-11449072
+yearly institution file (MERGED),MERGED2023_24_PP.csv,6430,3308,21270440,62.4,"no (21,270,440 cells > 10,000,000)","yes, but very slow / memory hungry","",65428226,FALSE,TRUE,TRUE,-11270440
+yearly institution file (MERGED),MERGED2024_25_PP.csv,6322,3308,20913176,62.8,"no (20,913,176 cells > 10,000,000)","yes, but very slow / memory hungry","",65894006,FALSE,TRUE,TRUE,-10913176
+yearly institution file (MERGED),MERGED2025_26_PP.csv,6273,3308,20751084,59.7,"no (20,751,084 cells > 10,000,000)","yes, but very slow / memory hungry","",62564180,FALSE,TRUE,TRUE,-10751084
+most-recent snapshot,Most-Recent-Cohorts-Field-of-Study.csv,227980,178,40580440,146.4,"no (40,580,440 cells > 10,000,000; 146.4 MB > 100 MB)","yes, but very slow / memory hungry","",153479459,FALSE,FALSE,TRUE,-30580440
+most-recent snapshot,Most-Recent-Cohorts-Institution.csv,6273,3308,20751084,95.5,"no (20,751,084 cells > 10,000,000)","yes, but very slow / memory hungry","",100102932,FALSE,TRUE,TRUE,-10751084
+zip archive,College_Scorecard_Raw_Data_06102026.zip,,,,447.8,n/a (archive),n/a (archive),archive; contains 100 entries (duplicate of the extracted folder),469515074,,FALSE,,
