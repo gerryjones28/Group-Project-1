@@ -1,0 +1,15 @@
+﻿variable_name,category,api_field_latest,value,label
+CONTROL,programs,latest.programs.cip_4_digit[].school.type,2,Private nonprofit
+CONTROL,programs,latest.programs.cip_4_digit[].school.type,3,Private for-profit
+CONTROL,programs,latest.programs.cip_4_digit[].school.type,4,Foreign
+MAIN,programs,latest.programs.cip_4_digit[].school.main_campus,1,Main campus
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,2,Associate's Degree
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,3,Bachelor's Degree
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,4,Post-baccalaureate Certificate
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,5,Master's Degree
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,6,Doctoral Degree
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,7,First Professional Degree
+CREDLEV,programs,latest.programs.cip_4_digit[].credential.level,8,Graduate/Professional Certificate
+DISTANCE,programs,latest.programs.cip_4_digit[].distance,1,No credentials in this field of study may be fully completed via distance education
+DISTANCE,programs,latest.programs.cip_4_digit[].distance,2,"At least one, but not all credentials in this field of study may be fully completed via distance education"
+DISTANCE,programs,latest.programs.cip_4_digit[].distance,3,All credentials in this field of study may be fully completed via distance education

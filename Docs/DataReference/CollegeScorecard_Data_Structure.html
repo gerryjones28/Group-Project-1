@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>College Scorecard - How the Data Is Structured</title>
+<style>
+@page { size: Letter; margin: 16mm 14mm 14mm 14mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.2pt; line-height: 1.45; color: #1b1f24; margin: 0;
+}
+h1 { font-size: 22pt; margin: 0 0 4px 0; letter-spacing: -0.4px; }
+h2 {
+  font-size: 13.5pt; margin: 26px 0 8px 0; padding-bottom: 4px;
+  border-bottom: 2px solid #0b5fa5; color: #0b3f6e;
+  break-after: avoid; page-break-after: avoid;
+}
+h3 { font-size: 11pt; margin: 16px 0 6px 0; color: #0b3f6e;
+     break-after: avoid; page-break-after: avoid; }
+p { margin: 6px 0; }
+code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; }
+code { background: #eef3f8; padding: 1px 4px; border-radius: 3px; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 12px 0; font-size: 9.2pt; }
+th, td { border: 1px solid #ccd6e0; padding: 4px 6px; text-align: left; vertical-align: top; }
+th { background: #0b5fa5; color: #fff; font-weight: 600; }
+tr:nth-child(even) td { background: #f6f9fc; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; page-break-inside: avoid; }
+.cover { border-left: 6px solid #0b5fa5; padding: 2px 0 2px 14px; margin-bottom: 14px; }
+.sub { color: #55636f; font-size: 11pt; margin-top: 2px; }
+.meta { color: #7a8794; font-size: 9pt; margin-top: 8px; }
+.box { background: #f2f8ff; border: 1px solid #b6d4ef; border-radius: 6px;
+       padding: 10px 14px; margin: 10px 0 14px 0; }
+.box h3 { margin-top: 0; }
+.warn { background: #fff5ef; border-color: #f0b892; }
+.warn h3 { color: #a2470a; }
+.tip { background: #f2fbf3; border-color: #a9d9ae; }
+.tip h3 { color: #1c6b2a; }
+ul, ol { margin: 6px 0 6px 0; padding-left: 20px; }
+li { margin: 3px 0; }
+.nobreak { break-inside: avoid; page-break-inside: avoid; }
+.pagebreak { break-before: page; page-break-before: always; }
+.pill { display: inline-block; background: #0b5fa5; color: #fff; border-radius: 10px;
+        padding: 0 8px; font-size: 8.5pt; margin-right: 6px; }
+.small { font-size: 8.8pt; color: #55636f; }
+pre { background: #f4f6f8; border: 1px solid #d8dee4; border-radius: 5px;
+      padding: 8px 10px; font-size: 8.6pt; overflow-wrap: anywhere; white-space: pre-wrap; }
+.kpi { display: flex; gap: 10px; margin: 10px 0 4px 0; }
+.kpi div { flex: 1; background: #0b3f6e; color: #fff; border-radius: 6px;
+           padding: 8px 10px; }
+.kpi b { display: block; font-size: 16pt; line-height: 1.1; }
+.kpi span { font-size: 8.5pt; opacity: 0.92; }
+footer { margin-top: 22px; border-top: 1px solid #ccd6e0; padding-top: 8px;
+         font-size: 8.5pt; color: #7a8794; }
+</style></head><body>
+<div class="cover">
+<h1>The College Scorecard Dataset</h1>
+<div class="sub">How the data is actually structured - a plain-English orientation before you start EDA</div>
+<div class="meta">Generated 20 September 2026 from <code>data/CollegeScorecardDataDictionary.xlsx</code> (unmodified) and the live College Scorecard API. Group Project I - The College Scorecard Dataset.</div>
+</div>
+<div class="kpi">
+<div><b>3,308</b><span>institution-level variables</span></div>
+<div><b>178</b><span>field-of-study variables</span></div>
+<div><b>30</b><span>annual datafiles, 1996-97 to 2025-26</span></div>
+<div><b>6,273</b><span>institutions in the API</span></div>
+</div>
+<div class="box">
+<h3>The 60-second version</h3>
+<ol>
+<li><b>It is not one table.</b> There are two separate datasets that share a key: <b>institution-level</b> (one row per college per year) and <b>field-of-study-level</b> (one row per college x CIP program per year).</li>
+<li><b>It is wide, not long.</b> Institution-level data has roughly <b>3,308 columns</b> in the API and ~3,000+ in the annual CSV files, for ~6,300 rows.</li>
+<li><b>Every column has three names.</b> The raw CSV name (<code>ADM_RATE</code>), the dotted API path (<code>latest.admissions.admission_rate.overall</code>), and a human description. Only the dotted path works in the API; only the raw name works in the CSV files. Confusing these two is the #1 source of wasted hours.</li>
+<li><b>Time is attached to the column, not the row.</b> The API stacks all years into the column name: <code>2019.student.size</code>. <code>latest.*</code> means "most recent value we have for this specific metric" - and that is <i>not</i> the same year for every metric.</li>
+<li><b>Missing is normal and comes in flavours.</b> Blank, <code>null</code>, privacy-suppressed, and not-applicable-to-this-school all look similar downstream. Treating them all as plain <code>NA</code> is fine to start, but it is a real data-quality finding in its own right.</li>
+<li><b>About 4 in 10 variables are coded integers.</b> A <code>1</code> in <code>school.ownership</code> means "Public", not the number 1. The workbook's continuation rows hold those decodings; they are flattened for you in <code>reference/05_value_labels.csv</code>.</li>
+<li><b>The two datasets have different shapes.</b> Institution variables are flat (one path = one number). Field-of-study variables are keys inside one nested array per institution, so they are unnested rather than selected. See the end of section 1.</li>
+</ol>
+</div>
+<h2>1. There are two datasets, not one</h2>
+<p>Everything in the Scorecard belongs to exactly one of these. Deciding which one you need is the first decision of the project.</p>
+<table class="">
+<thead><tr>
+<th></th>
+<th>Institution-level</th>
+<th>Field-of-study-level</th>
+</tr></thead><tbody>
+<tr><td>Grain</td><td>One row per institution per year</td><td>One row per institution x CIP program per year</td></tr>
+<tr><td>What it answers</td><td>How does this college do overall?</td><td>How does <i>this major at this college</i> do?</td></tr>
+<tr><td>API fields</td><td>3,308 (<code>&lt;year&gt;.&lt;category&gt;.&lt;metric&gt;</code>)</td><td>178 (<code>&lt;year&gt;.programs.cip_4_digit.*</code>)</td></tr>
+<tr><td>CSV files</td><td><code>MERGED_YYYY_YY_PP.csv</code> plus a <code>Most-Recent-Cohort</code> file</td><td><code>FieldOfStudyDataYYYY_YY.csv</code> plus a most-recent file</td></tr>
+<tr><td>Years available</td><td>30 files, 1996-97 through 2025-26</td><td>9 files, 2014-15 through the most recent</td></tr>
+<tr><td>Workbook tabs</td><td><code>Institution_Data_Dictionary</code>, <code>Institution_Cohort_Map</code>, <code>Most_Recent_Inst_Cohort_Map</code></td><td><code>FieldOfStudy_Data_Dictionary</code>, <code>FieldOfStudy_Cohort_Map</code></td></tr>
+</tbody></table>
+<div class="box tip"><h3>Practical consequence</h3>If your question is about <i>access, affordability or overall student outcomes</i>, use the institution-level data. The field-of-study data only starts in 2014-15, so a field-of-study time series over the full history is impossible. See the assignment's Goal 4: outcomes can cover access, affordability, student outcomes "or other categories" - you get to pick, and the pick is largely a data-availability question.</div>
+<h3>The one shape difference you must know about</h3>
+<p>The institution data is <b>flat</b>: one field path is one number. The field-of-study data is <b>nested</b>. Each institution is a single object, and inside it there is an array - one element per CIP program - and the 178 field-of-study dictionary variables are the keys <i>inside</i> those elements:</p>
+<pre>latest.programs.cip_4_digit   --&gt;  [                    &lt;-- array, one element per program
+    { unit_id: 100654, code: '01.0101', title: 'Agricultural Business...',
+      credential: { level: 3, title: 'Bachelor Degree' },
+      counts:  { ipeds_awards1: ..., ipeds_awards2: ... },
+      debt: {...}, earnings: {...}, repayment: {...}, distance: ... },
+    { ...next program... }
+]</pre>
+<p>So <code>latest.programs.cip_4_digit[].earnings.4_yr.overall_median_earnings</code> is <b>not</b> something you can put in <code>fields=</code>. You request the array and then unnest it. In R that is <code>tidyr::unnest_longer()</code> or <code>jsonlite::fromJSON(..., simplifyVector = TRUE)</code>; in pandas it is <code>json_normalize(record_to_explode = 'latest.programs.cip_4_digit')</code>. The exact key list is enumerated in <code>reference/07_field_of_study_variables.csv</code>.</p>
+<div class="box warn"><h3>API quirk you will hit in the first five minutes</h3>When you request that array, the JSON response does <b>not</b> nest it. It comes back under a single key whose name is the literal dotted string <code>latest.programs.cip_4_digit</code>, as a sibling of <code>id</code> - not under <code>latest</code> &gt; <code>programs</code>. So <code>result$latest$programs</code> is <code>NULL</code> and it looks like there is no data. Read <code>result[['latest.programs.cip_4_digit']]</code> instead.</div>
+<div class="box warn"><h3>Why this matters for your EDA</h3>If you unnest the array, your unit of analysis silently changes from <i>institution</i> to <i>institution x program</i>. Row counts explode, one school contributes dozens of rows, and any average you compute is now weighted by how many programs a school happens to offer. Aggregate back to institution level with an explicit weighting decision, or state clearly that the analysis is at program level.</div>
+<h2>2. Three ways to get the same numbers</h2>
+<table class="">
+<thead><tr>
+<th>Route</th>
+<th>How</th>
+<th>Use it when</th>
+</tr></thead><tbody>
+<tr><td>Annual CSV files</td><td><code>MERGED_1996_97_PP.csv</code> ... <code>MERGED_2025_26_PP.csv</code>, plus <code>Most-Recent-Cohort-*.csv</code></td><td>You want the full 3,000+ column firehose, or an offline reproducible snapshot. One file per year means 30 imports and a lot of RAM.</td></tr>
+<tr><td>REST API (direct)</td><td><code>GET https://api.data.gov/ed/collegescorecard/v1/schools?api_key=...&amp;fields=...</code></td><td>You want a subset of columns, one year, or a live/refreshable pull. Max <code>per_page=100</code>, rate limit 1,000 requests/hour.</td></tr>
+<tr><td><code>rscorecard</code> in R</td><td><code>sc_init() |&gt; sc_filter(...) |&gt; sc_select(...) |&gt; sc_get()</code></td><td>It is the same API with R-friendly verbs and automatic pagination. This is what the project's <code>APIWalkthrough.md</code> sets up.</td></tr>
+</tbody></table>
+<p class="small">The API is the API. <code>rscorecard</code> does not have its own copy of the data - it calls the same URL and returns a tibble. So whatever you learn about field paths and missingness applies either way.</p>
+<div class="pagebreak"></div>
+<h2>3. The variable namespace: 10 categories</h2>
+<p>A working API field path is a dotted path with a time prefix:</p>
+<pre>&lt;time&gt; . &lt;category&gt; . &lt;sub-topic&gt; . &lt;metric&gt;
+   2019  . admissions . admission_rate     . overall
+  latest  . cost       . net_price         . consumer.by_income_level.0-30000</pre>
+<table class="">
+<thead><tr>
+<th>Prefix</th>
+<th>Category</th>
+<th>Variables</th>
+<th>Coded</th>
+<th>What it covers</th>
+</tr></thead><tbody>
+<tr><td><code>id, location.*</code></td><td>root</td><td>6</td><td>0</td><td>Identifiers for the institution itself (Unit ID, OPE ID, lat/lon, school code). These are the join keys. Not year-specific.</td></tr>
+<tr><td><code>&lt;year&gt;.school.*</code></td><td>school</td><td>50</td><td>29</td><td>Who the school is: name, address, sector/ownership, Carnegie classification, accreditor, minority-serving flags, Title IV status, endowment, faculty.</td></tr>
+<tr><td><code>&lt;year&gt;.admissions.*</code></td><td>admissions</td><td>32</td><td>1</td><td>How hard it is to get in: admission rate and SAT/ACT score distributions.</td></tr>
+<tr><td><code>&lt;year&gt;.cost.*</code></td><td>cost</td><td>85</td><td>0</td><td>What it costs: tuition and fees, average net price overall and by family-income band.</td></tr>
+<tr><td><code>&lt;year&gt;.aid.*</code></td><td>aid</td><td>111</td><td>0</td><td>What students get and what they owe: Pell/loan take-up rates, median debt at graduation and for non-completers, PLUS loans.</td></tr>
+<tr><td><code>&lt;year&gt;.student.*</code></td><td>student</td><td>131</td><td>0</td><td>Who is enrolled and how many: total size, race/ethnicity shares, first-generation share, family income, full-time/part-time split.</td></tr>
+<tr><td><code>&lt;year&gt;.academics.*</code></td><td>academics</td><td>247</td><td>0</td><td>What is taught: share of degrees by CIP field, programs offered, average months to completion by program.</td></tr>
+<tr><td><code>&lt;year&gt;.completion.*</code></td><td>completion</td><td>1,367</td><td>0</td><td>Whether students finish: 100%/150%/200% completion and outcome rates, broken down by Pell status, loan status, first-gen status, race and time since entry. The single largest category.</td></tr>
+<tr><td><code>&lt;year&gt;.earnings.*</code></td><td>earnings</td><td>185</td><td>0</td><td>What graduates earn: median/mean earnings and counts of working vs not working 1-11 years after entry or after completion, plus earnings thresholds.</td></tr>
+<tr><td><code>&lt;year&gt;.repayment.*</code></td><td>repayment</td><td>1,094</td><td>0</td><td>Whether loans get repaid: cohort default rates, repayment rates at 1/3/5/7 years, and balance-based repayment rates (BBRR/DBRR) split by demographics and cohorts.</td></tr>
+</tbody></table>
+<div class="box warn"><h3>Two exceptions to remember</h3><ul><li>The identifiers are <b>not</b> inside a category. Use <code>id</code>, <code>ope8_id</code>, <code>ope6_id</code>, <code>location.lat</code>, <code>location.lon</code> - never <code>root.id</code>.</li><li>Scores of variables are <b>variants of the same metric</b>. For example <code>completion.completion_rate_4yr_150nt</code> (individual cohort) vs <code>completion.completion_rate_4yr_150nt_pooled</code> (two years pooled to reduce volatility). Read the trailing word before you trust a number.</li></ul></div>
+<h2>4. One number, three names - the thing that wastes the most time</h2>
+<p>The dictionary gives you <b>both</b> naming systems side by side. Here is what the gap looks like for real variables:</p>
+<table class="">
+<thead><tr>
+<th>API path (use in the API / rscorecard)</th>
+<th>Raw column (use in the CSV files)</th>
+<th>What it means</th>
+<th>Type</th>
+<th>Years</th>
+<th>Coded?</th>
+</tr></thead><tbody>
+<tr><td><code>latest.admissions.admission_rate.overall</code></td><td><code>ADM_RATE</code></td><td>Admission rate</td><td>float</td><td>24/30</td><td>no</td></tr>
+<tr><td><code>latest.cost.net_price.public.by_income_level.0-30000</code></td><td><code>NPT41_PUB</code></td><td>Average net price for $0-$30,000 family income (public institutions)</td><td>integer</td><td>16/30</td><td>no</td></tr>
+<tr><td><code>latest.aid.median_debt.completers.overall</code></td><td><code>GRAD_DEBT_MDN</code></td><td>The median debt for students who have completed</td><td>float</td><td>24/30</td><td>no</td></tr>
+<tr><td><code>latest.student.size</code></td><td><code>UGDS</code></td><td>Enrollment of undergraduate certificate/degree-seeking students</td><td>integer</td><td>28/30</td><td>no</td></tr>
+<tr><td><code>latest.completion.completion_rate_4yr_150nt</code></td><td><code>C150_4</code></td><td>Completion rate for first-time, full-time students at four-year institution...</td><td>float</td><td>28/30</td><td>no</td></tr>
+<tr><td><code>latest.earnings.10_yrs_after_entry.median</code></td><td><code>MD_EARN_WNE_P10</code></td><td>Median earnings of students working and not enrolled 10 years after entry</td><td>integer</td><td>7/30</td><td>no</td></tr>
+<tr><td><code>latest.repayment.3_yr_default_rate</code></td><td><code>CDR3</code></td><td>Three-year cohort default rate</td><td>float</td><td>14/30</td><td>no</td></tr>
+<tr><td><code>latest.school.ownership</code></td><td><code>CONTROL</code></td><td>Control of institution (IPEDS)</td><td>integer</td><td>30/30</td><td>yes</td></tr>
+</tbody></table>
+<div class="box warn"><h3>Rule of thumb</h3><ul><li>If it is <b>lowercase with dots</b>, it is an API path. Pattern: <code>latest.category.metric</code>.</li><li>If it is <b>SHOUTY_UPPER_SNAKE</b>, it is a raw CSV column. Pattern: <code>ADM_RATE</code>, <code>C150_4</code>, <code>MD_EARN_WNE_P10</code>.</li><li>The cohort-map tabs are keyed on the <b>raw</b> name. The API only knows the <b>dotted</b> name. <code>reference/03_institution_variables.csv</code> holds both in one row so you can translate either way.</li></ul></div>
+<h2>5. Time lives in the column name, and it is ragged</h2>
+<p>This is the part that surprises everyone. In the API there is no <code>year</code> column - the year is baked into the field name:</p>
+<pre>latest.student.size      -&gt; most recent value available for THIS metric
+2019.student.size        -&gt; the value as it stood in the 2019-20 datafile
+2019.cost.tuition.in_state
+2019.earnings.10_yrs_after_entry.median</pre>
+<table class="">
+<thead><tr>
+<th>Question</th>
+<th>Where the answer is</th>
+</tr></thead><tbody>
+<tr><td>Which years exist for a given variable?</td><td><code>Institution_Cohort_Map</code> - variable rows x 30 year columns. A cell of <code>NA</code> means "this metric does not exist in that datafile".</td></tr>
+<tr><td>What exactly is being measured in that year?</td><td>Same tab - the cell text names the cohort, e.g. "AcadYr 2019-20, reported in IPEDS DCY2019-20 <i>-or-</i> NSLDS pooled AY2017-18, AY2018-19 cohort". The <code>-or-</code> means the metric has two different sources/definitions across the years.</td></tr>
+<tr><td>Why is <code>latest.*</code> a different year in every column?</td><td><code>Most_Recent_Inst_Cohort_Map</code> - one row per variable naming the cohort it uses in the most-recent file. The API documentation says this explicitly: data are published at different times during the year.</td></tr>
+<tr><td>Is a variable available for all 30 files?</td><td><code>reference/06_cohort_coverage.csv</code> - a single row per variable with <code>years_with_data_count</code>, <code>first_year_with_data</code>, <code>last_year_with_data</code>.</td></tr>
+</tbody></table>
+<div class="box"><h3>The shape of the coverage, in numbers</h3><p>Of the 3,308 institution variables:</p><ul><li><b>247</b> have a value somewhere in all 30 annual files (mostly identifiers and slow-moving school characteristics).</li><li><b>3,026</b> exist in some years only - the classic case, and the reason a naive <code>read.csv</code> of every year will not line up column-wise.</li><li><b>31</b> are coded <code>NA</code> in every one of the 30 files. They still exist in the API. Do not build a time series on these without checking first.</li></ul><p class="small">Caveat: a low count is not always absence. Identifiers and slow-moving fields (<code>LATITUDE</code>, <code>ACCREDAGENCY</code>, <code>CITY</code>) show <code>1</code> because the workbook only documents them against the most recent datafile. The cohort map records what the publisher bothered to document, not always what the file contains.</p></div>
+<div class="pagebreak"></div>
+<h2>6. What a cell can actually contain</h2>
+<table class="">
+<thead><tr>
+<th>Situation</th>
+<th>What you see</th>
+<th>What to do</th>
+</tr></thead><tbody>
+<tr><td>Ordinarily missing</td><td><code>null</code> in JSON, empty in the CSV</td><td>R reads it as <code>NA</code>. Count it; it is usually the largest "value" in the column.</td></tr>
+<tr><td>Privacy suppressed</td><td>Historically the literal string <code>PrivacySuppressed</code> in the datafiles. The API's job is to give you <code>null</code> instead.</td><td>Keep it distinct from ordinary missing if you can - suppression tells you the cell is small and non-zero, which is information. Watch for variables whose name contains <code>_supp</code> / <code>suppressed</code>.</td></tr>
+<tr><td>Not applicable to this school</td><td><code>null</code>. E.g. an admission rate for an open-admissions or graduate-only school.</td><td>This is structural, not random. Missingness patterns are themselves a finding - the assignment explicitly invites you to look at relationships in missingness.</td></tr>
+<tr><td>Coded / factored</td><td>An integer whose meaning is a lookup. <b>30 of 3,308</b> variables have this, covering <b>277</b> value/label pairs.</td><td>Decode before summarising. All decodings are flattened into <code>reference/05_value_labels.csv</code>.</td></tr>
+<tr><td>Pooled / moving average</td><td>A separate column with <code>_pooled</code>, <code>_PP</code>, <code>_POOLED_SUPP</code>, <code>POOLYRS</code> in the name.</td><td>It is a two-year average, not a single year. Never mix pooled and unpooled in the same time series.</td></tr>
+<tr><td>Denominator, not a rate</td><td>Names like <code>completion_cohort_*</code>, <code>*_DENOM</code>, <code>COUNT_*</code>, <code>outcome_cohort*</code>.</td><td>A rate with a tiny denominator is noise. Always carry the count column next to the rate column so you can filter on it.</td></tr>
+</tbody></table>
+<h2>7. The nine things that will bite you</h2>
+<ol>
+<li><b>Raw name vs API path.</b> <code>ADM_RATE</code> is not a valid API field; <code>admissions.admission_rate.overall</code> is not a CSV column. (See section 4.)</li>
+<li><b><code>latest</code> is not a year.</b> It is a per-column "newest available" rule. Cross-sectional analysis across different <code>latest</code> columns mixes datafiles.</li>
+<li><b>3,000+ columns will not fit comfortably in memory or on a plot.</b> Select by category first, then by cohort coverage.</li>
+<li><b>~2,200 of the variables come from NSLDS, not IPEDS.</b> Loan and earnings variables have very different coverage and lags from enrolment variables. The <code>SOURCE</code> column in <code>reference/03_institution_variables.csv</code> tells you which.</li>
+<li><b>Suppressed and pooled variants are separate columns.</b> A blank in the main rate column plus a value in the <code>*_pooled</code> column is a normal combination, not a bug.</li>
+<li><b>OPE ID is not Unit ID.</b> <code>ope8_id</code>/<code>ope6_id</code> identify the OPE institution and can group multiple campuses. Aggregations that use the wrong key silently double-count or drop campuses.</li>
+<li><b>Rows are institutions, and the institution list changes over time.</b> Schools open, close and merge. 6,273 records exist today; a 1997 file has far fewer. Any year-over-year join leaks missingness.</li>
+<li><b>The dictionary is dated and versioned.</b> The workbook in <code>data/</code> is the June 2026 release. If you pull from the API later, new columns may appear that are not in this dictionary. Check <code>reference/02_changelog.csv</code>.</li>
+<li><b>Field-of-study variables are nested, not flat.</b> <code>latest.programs.cip_4_digit[].*</code> paths cannot be passed to <code>fields=</code>; you request the array and unnest it, which changes your unit of analysis. (See section 1.)</li>
+</ol>
+<div class="pagebreak"></div>
+<h2>8. A concrete first EDA session</h2>
+<p>The goal of session one is <i>not</i> to find a finding. It is to answer "what do I actually have?" in about an hour.</p>
+<h3>Step 1 - pull a small, named sample through the API</h3>
+<pre>library(rscorecard)
+
+sc_init() |&gt;
+  sc_filter(stabbr == "FL") |&gt;
+  sc_select(id, school.name, school.state, school.ownership, latest.student.size,
+              latest.admissions.admission_rate.overall, latest.cost.tuition.in_state,
+              latest.cost.net_price.consumer.by_income_level.0-30000,
+              latest.aid.pell_grant_rate, latest.aid.median_debt.completers.overall,
+              latest.completion.completion_rate_4yr_150nt,
+              latest.earnings.10_yrs_after_entry.median,
+              latest.repayment.3_yr_default_rate) |&gt;
+  sc_get() |&gt;
+  as_tibble()</pre>
+<p class="small">Every path in that block is in <code>reference/08_api_field_paths.txt</code>. Keep <code>per_page</code> modest; do not try to pull 3,000 fields at once.</p>
+<h3>Step 2 - measure the shape before you plot anything</h3>
+<pre>dim(df)
+names(df)
+sapply(df, class)
+
+# how much is missing, per column, worst first
+sort(colMeans(is.na(df)), decreasing = TRUE) |&gt; head(30)</pre>
+<p>That <code>sort(colMeans(is.na(df)))</code> line is the single highest-value command in the whole project. Compare its output against the <code>years_with_data_count</code> column in <code>reference/06_cohort_coverage.csv</code> - if a variable is missing 90% of the time in your sample but has 30/30 years of coverage, your sample is the problem, not the data.</p>
+<h3>Step 3 - pick the universe on purpose</h3>
+<pre># 6,273 records exist; 6,243 report that they are operating.
+# Most published analyses also restrict to Title IV, degree-granting, US-only:
+sc_init() |&gt;
+  sc_filter(school.operating == 1,
+            school.degrees_awarded.predominant != 0) |&gt;
+  sc_select(id) |&gt; sc_get() |&gt; nrow()</pre>
+<p>Write down the number you get and put it in your report. Every later count is relative to this decision, and it is the kind of choice a grader will ask about.</p>
+<h3>Step 4 - decode before you describe</h3>
+<pre># WRONG: this looks like a numeric summary
+summary(df$school.ownership)
+
+# RIGHT: join the lookup, then summarise
+labels &lt;- readr::read_csv("Docs/DataReference/reference/05_value_labels.csv")
+labels |&gt; dplyr::filter(variable_name == "CONTROL")</pre>
+<h3>Step 5 - then, and only then, do the usual</h3>
+<ul><li>Distribution of each continuous variable you selected (<code>hist</code>/<code>boxplot</code>), with the count column beside it.</li><li>Missingness map - <code>naniar::vis_miss()</code> or <code>VIM::aggr()</code> - on a subset of ~40 columns.</li><li>Correlation matrix across the numeric subset, to find clusters of near-duplicate columns.</li><li>A data-quality score per column, using the completeness and free-of-error formulas from the assignment.</li></ul>
+<h2>9. Where to look things up</h2>
+<table class="">
+<thead><tr>
+<th>You want to know...</th>
+<th>Open this</th>
+</tr></thead><tbody>
+<tr><td>Every variable in one flat table, with both names</td><td><code>reference/03_institution_variables.csv</code></td></tr>
+<tr><td>The same thing, readable in a browser or on GitHub</td><td><code>reference/04_institution_variables_by_category.md</code></td></tr>
+<tr><td>Which API fields to paste into <code>sc_select()</code></td><td><code>reference/08_api_field_paths.txt</code></td></tr>
+<tr><td>What a code like <code>ownership = 1</code> means</td><td><code>reference/05_value_labels.csv</code></td></tr>
+<tr><td>Whether a variable exists in 1997 or 2023</td><td><code>reference/06_cohort_coverage.csv</code></td></tr>
+<tr><td>What an abbreviation in the cohort map means</td><td><code>reference/01_glossary.csv</code></td></tr>
+<tr><td>When a variable was added, renamed or re-typed</td><td><code>reference/02_changelog.csv</code></td></tr>
+<tr><td>Whether these API paths still work</td><td><code>reference/09_api_path_validation.csv</code></td></tr>
+<tr><td>What the eight workbook tabs are</td><td><code>reference/00_readme_and_key_tabs.md</code></td></tr>
+<tr><td>The long-form statistical methodology</td><td>The two PDFs linked in the workbook README (<code>InstitutionDataDocumentation.pdf</code> and <code>FieldOfStudyDataDocumentation.pdf</code>)</td></tr>
+</tbody></table>
+<div class="box tip"><h3>Live-API check</h3>Every API field path printed in this document was checked against the live API on 20 September 2026: <b>3,486 of 3,486</b> came back from the service. For the flat institution fields, <b>3,308 of 3,308</b> were echoed back by the API. The 178 field-of-study keys were checked by pulling the <code>latest.programs.cip_4_digit</code> array and confirming the key exists inside an array element: <b>178 of 178</b> confirmed. These are <i>not</i> valid <code>fields=</code> values - see section 1. Full result, with the status of every single path, in <code>reference/09_api_path_validation.csv</code>.</div>
+<footer>
+Built by <code>scripts/build_data_reference.py</code> on 20 September 2026. Source workbook <code>data/CollegeScorecardDataDictionary.xlsx</code> was read only - nothing in this pack modifies the original project files. Counts reflect a total of 3,308 institution variables and 178 field-of-study variables.
+</footer>
+</body></html>
