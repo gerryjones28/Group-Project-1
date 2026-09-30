@@ -1,0 +1,943 @@
+================================================================================
+COLLEGE SCORECARD - GROUP PROJECT I : HANDOFF / CONTEXT FILE
+================================================================================
+
+Written: 2026-09-30, at the end of a Cline session on the Mac.
+Purpose: let a NEW Cline instance (on the Windows PC) pick up this project with
+         zero re-discovery. Everything below was VERIFIED by running commands,
+         not assumed.
+
+HOW TO USE THIS FILE (new Cline instance - read this first)
+--------------------------------------------------------------------------------
+1. Read this whole file before touching anything. It is long on purpose.
+2. Then read, in this order:
+      Docs/Group Project I.pdf          <-- the assignment brief (1 page)
+      EDA/README.md                     <-- full EDA write-up, findings + caveats
+      EDA/reports/EDA_SUMMARY.md        <-- the generated results
+      Docs/DataReference/INDEX.md       <-- teammate's variable reference pack
+3. DO NOT re-derive the data-quality work. It is DONE, verified, and committed.
+   See section 7 for the exact numbers.
+4. The project is at the point where the ONLY remaining work is assignment Goal
+   4 (analysis). See section 10 for the options, and section 12 for the decision
+   the user needs to make before code is written.
+
+================================================================================
+1. WHAT THIS ASSIGNMENT IS
+================================================================================
+
+This is a script setup for a college scorecard dataset that we will do EDA/regression analysis on. I'll be working with three partners, one of which setup the Github repo for us.
+
+Source: "Group Project I - The College Scorecard Dataset" (Docs/Group Project I.pdf).
+
+Premise (from the brief):
+  The U.S. Department of Education collects information for public and private
+  colleges/universities and assembles it into public "scorecards". The data
+  measures affordability and ease of access to student outcomes post-graduation,
+  and "can be summarized to highlight schools providing the best value in
+  education."
+
+Key facts stated in the brief:
+  - Data are available in yearly reports from 1996 through 2023 (the files we
+    actually have run 1996-97 through 2025-26 - see section 6).
+  - Each year has roughly 7,000 observations (colleges) and 2,000-3,300 variables.
+  - For privacy reasons some data are masked as "PrivacySuppressed".
+  - Some values are collected as two-year moving averages to reduce variability.
+  - For encoded variables, values are translated in
+    CollegeScorecardDataDictionary (an .xlsx in our copy, see section 6).
+
+Links given in the brief:
+  Website:        https://collegescorecard.ed.gov/
+  Dataset:        https://collegescorecard.ed.gov/data        (also on Canvas)
+  Documentation:  https://collegescorecard.ed.gov/data/data-documentation
+  Glossary:       https://collegescorecard.ed.gov/data/glossary  (also on Canvas)
+  API helper pkg: https://github.com/RTICWDT/college-scorecard
+
+THE FOUR GOALS (verbatim - this is the deliverable structure)
+--------------------------------------------------------------------------------
+1. Read the data into a language-native format. This may involve:
+   a. Either aggregating yearly files in R, or
+   b. Using an interface between R and a native database format, or
+   c. Accessing the API described in Documentation above, and at
+   d. https://github.com/RTICWDT/college-scorecard
+   e. Properly treating NAs and other encoded variables
+
+2. Assess the quality of the data. This may include:
+   a. Measuring fractions of missing values, and/or relationships in missingness
+      between variables of interest
+   b. Calculating numeric quality scores for several metrics
+
+3. Recode any variables of interest. For example:
+   a. Create combined categories from several columns
+   b. Aggregate summary statistics from factor levels between columns
+   c. Normalize data between categories, or treat separate categories
+      separately, as appropriate
+
+4. Identify and display any relationships of interest.
+   a. Ideally, these will use some of the recoded variables above, consider
+      effects of data quality, and answer a series of defined questions.
+   b. Outcomes might cover access, affordability, student outcomes, or other
+      categories.
+
+Note the phrase "answer a series of defined questions" in 4a. That is what turns
+an EDA into an argument, and it is the piece that has NOT been done yet.
+
+================================================================================
+2. PROJECT LOCATION AND GIT
+================================================================================
+
+Repo:   https://github.com/gerryjones28/Group-Project-1.git   (remote: origin)
+Branch: main
+
+Mac path used so far:
+  /Users/gerryjr/Desktop/Group Project 1/Group Project 1
+
+  NOTE: the parent folder ("Group Project 1") is NOT part of the repo. The repo
+  root is the inner folder of the same name. Watch out for this when cloning.
+
+On the PC the scripts derive the project root from their own location, so the
+absolute path does not matter. See section 5.
+
+GIT STATE AS OF THIS FILE (verified):
+  Working tree: CLEAN (nothing modified, nothing staged).
+  Branch is level with origin/main (0 ahead, 0 behind).
+
+  Recent history (newest first):
+    09da7b3  Reports/Figures/Summaries      <-- the EDA work (previous session)
+    550b488  DataReference/Structure        <-- teammate's reference pack
+    7b0beb0  api docs
+    76e7a6f  Update .gitignore
+    8a2a602  Add project setup, gitignore, and API code
+    c20b2d5  files
+    02cfd9e  Initial commit
+
+  So: the EDA pipeline, reports, figures and READMEs are ALREADY committed and
+  pushed. Nothing is pending. Do NOT re-commit them.
+
+  Repo object size ~49.5 MB. Largest blob ever committed is 3.65 MB
+  (Docs/DataReference/reference/06_cohort_coverage.csv). There is NO large-file
+  problem in history, so no history rewrite / filter-repo is needed. Do not
+  suggest one.
+
+PARTNERS
+  Four people total. Full and equal access to the repo. We ship code and small
+  stats through git; the raw data does NOT go through git (section 3).
+
+================================================================================
+3. DATA MANAGEMENT RULE (IMPORTANT - DO NOT VIOLATE)
+================================================================================
+
+RULE: git is for code and small stats. Datasets stay off GitHub.
+
+Why: the raw Scorecard CSVs are 60-150 MB each (3.7 GB extracted). GitHub warns
+above 50 MB and HARD-REJECTS any file over 100 MB. One accidental "git add" of
+data/ would break the push for everyone.
+
+Enforced by the root .gitignore, which ignores:
+  /data/*                 (with ONE deliberate exception, see below)
+  /EDA/simplified/        (regenerable extract, up to 42 MB)
+  *.xls  *.xlsx  *.zip  *.7z  *.gz
+  ~$*                     (Excel lock files, e.g. ~$Codebook.xlsx)
+  .DS_Store, Thumbs.db, *.swp, .Renviron*, .Rhistory, .RData, .Rproj.user/,
+  *.Rproj
+
+The one exception that IS tracked on purpose:
+  data/CollegeScorecardDataDictionary.xlsx   (712 KB)
+  Reason: the scripts read it to decode coded columns, it is tiny, and partners
+  need it to run anything. It is also already in the repo history, so untracking
+  it would not shrink the repo - it would only break the pipeline for teammates.
+  To exclude it anyway: delete the "!" line near .gitignore line 59 and run
+  "git rm --cached data/CollegeScorecardDataDictionary.xlsx".
+
+What IS tracked (this is the intended split):
+  code            EDA/scripts/*.R, scripts/*
+  small stats     EDA/reports/*.csv, EDA/reports/*.md
+  figures         EDA/figures/*.png
+  docs            README.md, EDA/README.md, Docs/**
+  the codebook    data/CollegeScorecardDataDictionary.xlsx
+
+NEVER do: "git add -f" on anything in data/ or EDA/simplified/.
+To share a big file with a partner, use the group drive / a Drive link.
+
+================================================================================
+4. SETTING UP THIS PROJECT ON THE PC (first-time, do this once)
+================================================================================
+
+STEP 1 - Clone and open
+  git clone https://github.com/gerryjones28/Group-Project-1.git
+  cd Group-Project-1
+  Open the folder in RStudio (or just use Rscript from a shell).
+
+STEP 2 - Install R packages
+  install.packages(c("data.table", "ggplot2", "scales", "readxl", "writexl"))
+  The Mac ran R 4.6.1 with: data.table 1.18.6.1, ggplot2 4.0.3, scales 1.4.0,
+  readxl 1.5.0, writexl 2.0.1. Any recent R 4.x should be fine; data.table and
+  ggplot2 are the two that matter.
+
+STEP 3 - Re-download the raw data (THIS IS THE BIG ONE, ~4 GB)
+  The raw files are NOT in the repo. Do not skip this, or every script will stop
+  with a "Missing the Scorecard inputs" error (that check is intentional - see
+  section 5).
+
+  Go to https://collegescorecard.ed.gov/data/ and download:
+    - the "Most Recent Cohorts" institution file
+    - the "Most Recent Cohorts" field-of-study file
+    - the full archive of yearly files (the MERGED... files)
+
+  Create this exact layout (the folder name matters - it is hard-coded in
+  EDA/scripts/00_common.R around line 29):
+
+    data/College_Scorecard_Raw_Data_06032026/
+        MERGED1996_97_PP.csv  ... MERGED2025_26_PP.csv     (30 yearly files)
+        FieldOfStudyData1415_1516_PP.csv ... (8 program files)
+        Most-Recent-Cohorts-Institution.csv
+        Most-Recent-Cohorts-Field-of-Study.csv
+        Crosswalks/            (optional)
+        data.yaml              (optional)
+
+  If the download date/folder name differs, either rename the folder to match, or
+  edit DATA_DIR in EDA/scripts/00_common.R, or set the env var SC_PROJECT_ROOT.
+
+  data/CollegeScorecardDataDictionary.xlsx (712 KB) ships with the repo already,
+  so you do not need to redownload it.
+
+  DO NOT download the .zip bundle as well - it is redundant with the extracted
+  folder and just wastes ~450 MB. (On the Mac there is a leftover
+  College_Scorecard_Raw_Data_06102026.zip that can be deleted any time.)
+
+STEP 4 - API key (only needed for assignment Goal 1c)
+  Each person needs their OWN free key. See Docs/APIWalkthrough.md for the full
+  walkthrough. Short version: get a key at
+  https://collegescorecard.ed.gov/data/api-documentation/ and put this line in
+  your HOME .Renviron (NOT in the repo):
+      DATAGOV_API_KEY=yourkeygoeshere
+  Then fully restart R.
+
+  GOTCHA (Mac-side): there is also a stray ".Renviron" in the PARENT folder with
+  the WRONG variable name ("API_KEY=..."). rscorecard looks for DATAGOV_API_KEY,
+  so that file does nothing. Use DATAGOV_API_KEY. Never commit any .Renviron.
+  Verify with:  Sys.getenv("DATAGOV_API_KEY")   -> should print your key.
+
+STEP 5 - Verify the pipeline runs
+  Rscript EDA/scripts/01_size_limits_check.R
+  See section 5 for the full sequence and expected outputs.
+
+MAC-ONLY NOTE (ignore on the PC): the Mac has a stray git repo rooted at the home
+directory (/Users/gerryjr - 0 commits, no remote). Never run git commands from a
+home folder. On the PC, just make sure you clone into a folder that is not
+already inside some other repo.
+
+================================================================================
+5. THE PIPELINE - WHAT EXISTS AND HOW TO RUN IT
+================================================================================
+
+Four R scripts, ~1,292 lines total, in EDA/scripts/. They are a linear pipeline;
+00 is shared and sourced by the other three.
+
+  00_common.R  (443 lines)  NOT run directly. Contains:
+       - project-root detection (works from any working directory; derives the
+         root from the Rscript --file= argument; can be overridden with the env
+         var SC_PROJECT_ROOT)
+       - path constants: DATA_DIR, DICT_XLSX, SIMPLIFIED_DIR, REPORTS_DIR,
+         FIGURES_DIR, INST_LATEST, FOS_LATEST
+       - creates simplified/, reports/, figures/ if missing
+       - preflight helpers require_files() / require_merged_files() that stop
+         with a clear message if the raw data is absent
+       - spreadsheet hard limits as named constants
+       - NA / "PS" / "PrivacySuppressed" / blank handling tokens
+       - codebook loader (reads the .xlsx; also repairs embedded CR/LF that is
+         inside some label text)
+       - chunked CSV auditing helpers, fnum()/pct1() formatters, md_table()
+       - THE VARIABLE GROUP DEFINITIONS (CORE_*) - where you add new variables
+       - recode helpers: control/level/region/preddeg/highest-degree/carnegie
+         labels, MSI flags, size_bin_of()
+
+  01_size_limits_check.R  (116 lines)  ~10 s
+       Measures every raw file and answers "can this open in Excel/Sheets?"
+       -> EDA/reports/size_limits_check.csv
+       -> EDA/reports/size_limits_check.md
+       -> EDA/reports/column_budget_vs_cell_limits.csv
+
+  02_build_simplified_data.R  (300 lines)  ~15 s
+       Builds the five small, typed, decoded extracts in EDA/simplified/.
+       -> institution_core_latest.csv / .xlsx
+       -> panel_core_1996_2025.csv
+       -> field_of_study_core_latest.csv
+       -> field_of_study_by_cip2_latest.csv
+       -> EDA/reports/simplified_codebook.csv
+       -> EDA/reports/simplified_outputs_manifest.csv
+
+  03_eda_quality_report.R  (433 lines)  ~75-90 s
+       The audit. Needs ggplot2 + scales.
+       -> 18 files in EDA/reports/ (including EDA_SUMMARY.md)
+       -> 4 PNGs in EDA/figures/
+
+RUN ORDER AND TIMES (verified end-to-end on the Mac: clean, no errors/warnings):
+
+  cd <repo root>
+  Rscript EDA/scripts/01_size_limits_check.R       # ~10 s
+  Rscript EDA/scripts/02_build_simplified_data.R   # ~15 s
+  Rscript EDA/scripts/03_eda_quality_report.R      # ~75-90 s
+
+  Script 03 depends on 02's outputs (it reads
+  EDA/simplified/institution_core_latest.csv), so always run 02 before 03.
+
+  PREFLIGHT BEHAVIOUR: if data/ is missing, or the extracts have not been built,
+  the scripts STOP with a plain-English message pointing at README.md ->
+  "Getting the data" or telling you to run script 02 first. This is DELIBERATE
+  and is not a bug. Verified by simulating an empty clone: all three scripts fail
+  this way rather than crashing with a raw readxl/fread error.
+
+ADDING NEW VARIABLES (likely needed for Goal 4 - see section 12)
+  The extract carries only 113 of the 3,308 raw institution variables (3.4%),
+  plus 30 derived columns = 143 columns. If your analysis needs a raw variable
+  that is not in the extract, you must add it and re-run 02.
+
+  WHERE: EDA/scripts/00_common.R, the "Core variable sets" block, ~lines 331-370:
+      CORE_ID      identifiers, location, sector/level flags, MSI flags, Carnegie
+      CORE_ACCESS  OPENADMP, ADM_RATE, SAT_AVG, ACTCMMID, SATVRMID, SATMTMID
+      CORE_BODY    UGDS, UG, demographics (UGDS_*), family income, INC_PCT_*,
+                   STUFACR, AVGFACSAL
+      CORE_COST    tuition, cost of attendance, NPT4_*/NPT41/45, PCTPELL,
+                   PCTFLOAN, DEBT_MDN, GRAD_DEBT_MDN, PELL_DEBT_N
+      CORE_OUT     C150_*/C200_*/D150_*, RET_*, OMACHT*, RPY_*, COMPL_RPY_*,
+                   CDR2, CDR3
+      CORE_EARN    MD_EARN_WNE_P6/P8/P10, MN_EARN_WNE_*, PCT25/PCT75_EARN_WNE_P10,
+                   GT_25K_P6/P10
+      CORE_ALL     the union, used by scripts 02 and 03
+
+  IMPORTANT: adding to CORE_* also widens the panel and the coverage matrix. The
+  panel has its OWN explicit column list (PANEL_COLS + PANEL_RAW) further down in
+  02_build_simplified_data.R around line 200 - add the variable there too if you
+  want it in panel_core_1996_2025.csv.
+
+  BEFORE adding anything, check that the variable exists and how well populated
+  it is:
+    Docs/DataReference/reference/03_institution_variables.csv   (master table)
+    Docs/DataReference/reference/06_cohort_coverage.csv         (years per var)
+    EDA/reports/variable_audit_institution_latest.csv           (pct_missing)
+  Also make sure it is not one of the 201 completely empty columns.
+
+LINE-ENDING GOTCHA
+  .gitattributes contains "* text=auto", which normalises line endings to LF in
+  the repo. Windows checkouts are fine; just do not hand-edit CSV line endings,
+  and if a diff shows a whole file changed, it is a CRLF issue.
+
+================================================================================
+6. THE RAW DATA - WHAT IS THERE AND WHY IT WILL NOT OPEN
+================================================================================
+
+Location: <repo>/data/
+
+  College_Scorecard_Raw_Data_06032026/    3.7 GB, 42 entries (40 CSVs + 2 extra)
+      30 x MERGED####_##_PP.csv              1996_97 ... 2025_26, 60-100 MB each
+      8  x FieldOfStudyData####_####_PP.csv  1415_1516 ... 2122_2223
+      Most-Recent-Cohorts-Institution.csv
+      Most-Recent-Cohorts-Field-of-Study.csv
+      Crosswalks/ , data.yaml
+
+  College_Scorecard_Raw_Data_06102026.zip   447.8 MB
+      REDUNDANT. A second download of the same release that is already extracted
+      above. Can be DELETED to reclaim ~448 MB. Git-ignored either way.
+
+  CollegeScorecardDataDictionary.xlsx       712 KB   (tracked in git on purpose)
+
+MEASURED SIZES (from 01_size_limits_check.R - these are exact; do not re-measure):
+
+  file                                    rows      cols      cells        MB
+  MERGED1996_97_PP.csv                    7,007     3,308     23,179,156    65.9
+  MERGED2025_26_PP.csv                    6,273     3,308     20,751,084    59.7
+  Most-Recent-Cohorts-Institution.csv     6,273     3,308     20,751,084    95.5
+  Most-Recent-Cohorts-Field-of-Study.csv 227,980       178     40,580,440   146.4
+  College_Scorecard_Raw_Data_*.zip          n/a       n/a            n/a   447.8
+
+WHY THEY WILL NOT OPEN IN A SPREADSHEET (this IS assignment finding #1):
+  Google Sheets : 10,000,000 cell ceiling per spreadsheet, all tabs combined.
+                  Institution file = 20.75M cells  -> REFUSED.
+                  Field-of-study file = 40.58M cells -> REFUSED.
+                  Google Drive also refuses to CONVERT uploads over ~100 MB, and
+                  the field-of-study file is 146.4 MB.
+  Excel (.xlsx) : 1,048,576 rows x 16,384 columns. The files fit the SHAPE, so
+                  Excel will open them, but a 95 MB / 23M-cell sheet is painfully
+                  slow and often runs out of memory on a laptop.
+  Practical comfort zone for either tool: < ~5,000,000 cells and < ~30 MB.
+
+COLUMN BUDGET IMPLIED BY THE SHEETS CELL LIMIT:
+  scenario                                    max_cols   max_cols_for_comfort
+  600 rows (single page)                       16,666          8,333
+  6,273 rows (all institutions, latest)         1,594            797
+  228,000 rows (field-of-study latest)             43             21
+  210,000 rows (30-year panel)                     47             23
+
+  => If anyone ever needs to eyeball the raw data by hand, split it by year AND
+     by theme (identifier block / admissions / cost / outcomes). The theme groups
+     are already defined as CORE_* in 00_common.R.
+
+THE EXTRACTS THAT REPLACE THE RAW FILES (EDA/simplified/, ALL git-ignored):
+
+  file                                  rows       cols    cells      MB    Sheets?
+  institution_core_latest.csv            6,273      143    897,039    5.97   YES
+  institution_core_latest.xlsx           6,273      143    897,039    3.72   YES
+  panel_core_1996_2025.csv             208,759       26  5,427,734   27.43   YES
+  field_of_study_core_latest.csv       227,980       23  5,243,540   41.78   YES
+  field_of_study_by_cip2_latest.csv        375       12      4,500    0.03   YES
+
+  Encoding rules applied to every extract:
+    - "NA" (not collected / not applicable), "PS" / "PrivacySuppressed" (withheld
+      for privacy) and truly blank cells ALL become real missing values (empty).
+    - Anything that parses as a number is stored as a number, so Excel sorts and
+      charts it immediately.
+    - Coded variables are decoded from the official codebook: CONTROL, ICLEVEL,
+      REGION, LOCALE, PREDDEG, HIGHDEG, CCBASIC. E.g. REGION 5 becomes
+      "Southeast (AL, AR, FL, ...)".
+    - The privacy signal is NOT thrown away: n_headline_privacy_suppressed counts
+      how many of the ten headline metrics were withheld for that institution.
+    - Column definitions: EDA/reports/simplified_codebook.csv (164 rows:
+      variable, scorecard_label, derived, in_institution_core, in_field_of_study,
+      in_panel).
+
+THE 143 COLUMNS OF institution_core_latest.csv
+  = 113 raw Scorecard variables + 30 derived columns.
+  That is 3.4% of the raw 3,308 - a crucial caveat for any analysis.
+
+  The 30 derived / recoded columns (this is assignment Goal 3, already done):
+    control_label                CONTROL decoded (Public / Private nonprofit /
+                                 Private for-profit)
+    level_label                  ICLEVEL decoded (4-year / 2-year / <2-year)
+    carnegie_label               CCBASIC decoded
+    preddeg_label, highest_degree_label, region_label
+    size_bin                     UGDS bucket <1k / 1-5k / 5-20k / 20k+
+    minority_serving             recoded from HBCU/PBI/TRIBAL/HSI/ANNHI/
+                                 AANAPII/NANTI flags
+    grad_rate                    C150_4 coalesced with C150_L4
+    grad_rate_basis              which cohort the grad rate refers to
+    grad_debt_mdn, earn_p10      coalesced versions of the raw columns
+    earn_p10_pctile_group        percentile of earn_p10 WITHIN CONTROL x ICLEVEL
+    grad_rate_pctile_group       percentile of grad_rate, same peer group
+    net_price_pctile_group       percentile of net_price, same peer group
+    value_index_earn             = earn_p10_pctile_group - net_price_pctile_group
+    value_index_grad             = grad_rate_pctile_group - net_price_pctile_group
+    sticker_to_net               TUITIONFEE_IN / net_price
+    net_price_income_gap         net_price_highinc - net_price_lowinc
+    tuition_in_out_gap           TUITIONFEE_OUT - TUITIONFEE_IN
+    grad_debt_to_earn            grad_debt_mdn / earn_p10
+    n_headline_missing, n_headline_privacy_suppressed, pct_headline_complete
+    dq_tier                      quality tier from pct_headline_complete
+    cip2 / cip2_label            CIP family (field-of-study files)
+    debt_to_earn_1yr             (field-of-study)
+    has_unitid                   (field-of-study - see trap 5 in section 11)
+
+================================================================================
+7. WHAT IS ALREADY DONE - MAP AGAINST THE FOUR GOALS
+================================================================================
+
+GOAL 1  Read data into a language-native format .......... DONE, TWO WAYS
+        - The 30 yearly MERGED files are aggregated in R into
+          panel_core_1996_2025.csv (208,759 rows x 26 cols). The brief's option 1a.
+        - NAs and encoded variables handled properly (1e): NA / PS /
+          PrivacySuppressed / blank are all normalised to real missing, and coded
+          columns are decoded from the official codebook.
+        - The API path is also set up separately: Docs/APIWalkthrough.md, plus
+          scripts/APIEndpointTest.R (currently just library(rscorecard);
+          sc_dict("grad_rate")). That is the brief's option 1c - STARTED, NOT
+          FINISHED. The teammate's Docs/DataReference/reference/08_api_field_paths.txt
+          and 09_api_path_validation.csv support it.
+
+GOAL 2a Missingness fractions + relationships in missingness ....... DONE
+        - Full-column audit of both most-recent files (chunked, not loaded whole).
+        - Of the 3,308 institution columns: 201 are completely empty, 301 are
+          >99% empty, and only 26 are essentially complete (<=1% missing).
+          Tiers: 0-1% = 26 | 1-25% = 539 | 25-75% = 1,802 | 75-99% = 640 |
+                 (almost) empty = 301
+        - Co-missingness measured with Jaccard (both missing / either missing)
+          and compared against an independence baseline.
+        - Completeness vs log10(undergraduate enrolment) correlation = 0.64.
+        - Only 23.7% of institutions have ALL ten headline metrics populated;
+          30.1% have at least nine.
+
+GOAL 2b Numeric quality scores for several metrics ................. DONE
+        quality_score = 100 x (share of institutions with a value)
+                            x (1 - share of cells withheld as PS)
+
+        metric          pct_complete   pct_privacy_suppressed   quality   flag
+        UGDS               87.3               0.0                 87.3    thin
+        PCTPELL            86.8               0.0                 86.8    thin
+        PCTFLOAN           86.8               0.0                 86.8    thin
+        earn_p10           81.7               0.0                 81.7    thin
+        grad_rate          81.5               0.0                 81.5    thin
+        net_price          80.3               0.0                 80.3    thin
+        grad_debt_mdn      76.2              19.6                 61.2    thin
+        TUITIONFEE_IN      57.6               0.0                 57.6    thin
+        RET_FT4            32.8               0.0                 32.8    unusable
+        ADM_RATE           30.4               0.0                 30.4    unusable
+
+GOAL 3  Recode variables of interest ............................... DONE
+        - Combined categories from several columns: grad_rate (C150_4 + C150_L4),
+          minority_serving (7 flags), size_bin, dq_tier.
+        - Normalised between categories: the *_pctile_group columns and
+          value_index_earn / value_index_grad, computed WITHIN CONTROL x ICLEVEL
+          peer groups so publics are not compared against privates.
+        - Separate categories treated separately throughout (sector x level
+          tables; grad_rate_basis).
+
+GOAL 4  Identify and display relationships / answer defined questions ... NOT DONE
+        This is the ENTIRE remaining work. The only existing artefact is an
+        exploratory earnings-vs-net-price figure plus its correlation CSV. There
+        is no question set, no modelling, and no write-up of relationships.
+
+  >>> SO: goals 1, 2 and 3 are complete and unusually thorough. Everything left
+      is Goal 4. Do not spend more time on data plumbing; it is diminishing
+      returns. Pick questions and analyse.
+
+================================================================================
+8. KEY FINDINGS ALREADY ESTABLISHED (do not re-derive - cite these)
+================================================================================
+
+MISSINGNESS IS STRUCTURAL, NOT RANDOM
+  - 201 of 3,308 columns are completely empty; 301 are >99% empty.
+  - Co-missingness clusters hard (Jaccard = both missing / either missing):
+        PCTPELL  vs PCTFLOAN    Jaccard 1.00   - the SAME 828 institutions
+                                               (13.2% both missing), so these two
+                                               are NOT independent variables
+        UGDS     vs PCTPELL     Jaccard 0.96   (795 both missing)
+        UGDS     vs PCTFLOAN    Jaccard 0.96
+        ADM_RATE vs RET_FT4     Jaccard 0.86   (3,967 both missing = 63.2%)
+        net_price vs grad_rate  Jaccard 0.76   (1,031 both missing)
+  - Completeness rises with institution size:
+        size_bin           institutions   mean_pct_complete   median UGDS
+        Under 1,000             3,295            70.7              168
+        1,000-4,999             1,432            88.9            2,002
+        5,000-19,999              618            89.9            8,124
+        20,000 or more            133            95.0           29,820
+        Not reported              795            14.7              n/a
+    Correlation with log10(enrolment) = 0.64.
+
+QUALITY DIFFERS SHARPLY BY SECTOR AND LEVEL (this is the most quotable finding)
+  control_label       level_label         insts   mean_complete  median  share_high_dq  mean_privacy
+  Public              4-year               917        87.1        100       57.5          0.05
+  Private nonprofit   4-year             1,705        74.4        100       54.0          0.23
+  Public              2-year               891        72.4         80        0.0          0.25
+  Private nonprofit   2-year               134        66.3         70        0.0          0.30
+  Private for-profit  2-year               526        64.9         70        0.0          0.06
+  Private for-profit  4-year               388        62.5         80       10.8          0.11
+  Private for-profit  Less-than-2-year   1,411        60.0         70        0.0          0.20
+  Public              Less-than-2-year     239        57.0         60        0.0          0.62
+  Private nonprofit   Less-than-2-year      62        54.0         60        0.0          0.40
+
+  The pattern: the institutions whose students are most reliant on federal aid
+  (short-program and for-profit) have the WORST data quality and the HIGHEST
+  privacy suppression. Strong candidate for the project's critical angle.
+
+PRIVACY SUPPRESSION IS CONCENTRATED
+  - Institution file: the BBRR1_PP_IND_* family is 100% missing and ~97.2%
+    privacy-suppressed.
+  - Field-of-study file: earnings/debt cells are up to 90.6% privacy-suppressed.
+    This is the single biggest limitation on program-level analysis.
+  - grad_debt_mdn: 19.6% of cells withheld as PS.
+
+WATCH THE CEILINGS - some variables can NEVER be "well populated"
+  ADM_RATE and RET_FT4 are defined only for institutions that admit / retain a
+  selective cohort, so their ~30-40% ceiling is a property of the VARIABLE, not a
+  defect in the file. Never treat these as data gaps to impute, and never code
+  missing as zero.
+
+LOGICAL ANOMALIES (EDA/reports/data_anomalies_latest.csv) - mostly clean
+  net price below zero ............................. 12 inst (0.19%)   REAL ERROR
+  zero undergraduate enrolment (UGDS == 0) ......... 11 inst (0.18%)   REAL ERROR
+  net price above sticker tuition .................. 1,225 (19.53%)    NOT AN ERROR
+      Explanation: NPT4 averages over federally-aided students, so heavy grant
+      aid legitimately pushes net price below sticker price. Cases where grants
+      exceed tuition trip this check. Explain it in the write-up; do NOT "clean"
+      these rows away.
+  tuition below zero ............................... 0
+  graduation rate above 1 .......................... 0
+  retention rate above 1 ........................... 0
+  PCTPELL / PCTFLOAN above 1 ....................... 0
+  earnings below zero .............................. 0
+  debt-to-earnings above 5 ......................... 0
+
+================================================================================
+9. THE FEASIBILITY TABLE - WHICH QUESTIONS ARE ANSWERABLE
+   (the most important table in this file - read before choosing an analysis)
+================================================================================
+
+Computed from the panel: for each variable, the years where it is >=50% populated.
+This determines what is possible BEFORE you commit to it.
+
+  variable          years with >=50% coverage         peak coverage
+  -----------------------------------------------------------------------
+  UGDS (enrolment)      1996-2024  (28 yrs)           95% (1997)
+  grad_rate             1997-2024  (28 yrs)           88% (2003)
+  TUITIONFEE_IN         2000-2024  (25 yrs)           62% (2003)
+  grad_debt_mdn         1997-2020  (24 yrs)           81% (2013)
+  MD_FAMINC             1997-2016  (20 yrs)           96% (2011)
+  PCTPELL               2008-2024  (17 yrs)           92% (2008)
+  net_price             2009-2024  (16 yrs)           87% (2011)
+  COSTT4_A              2009-2024  (15 yrs)           56% (2009)
+  RPY_3YR_RT            2009-2016   (8 yrs)           81% (2015)
+  earn_p10              2007-2020   (7 yrs, NON-CONTIGUOUS)   83% (2020)
+  ADM_RATE              NEVER >=50%                     43% (2003)
+  SAT_AVG               NEVER >=50%                     22% (2004)
+  RET_FT4               NEVER >=50%                     33% (2007)
+
+THREE CONSEQUENCES THAT SHOULD SHAPE EVERYTHING:
+
+  (a) THE SWEET SPOT IS 2009-2016. That is the only window where net_price,
+      COSTT4_A, PCTPELL, RPY_3YR_RT and MD_FAMINC all overlap. If the question is
+      affordability + repayment, the panel is ~8 years, not 30.
+
+  (b) EARNINGS ARE CROSS-SECTIONAL ONLY. earn_p10 clears 50% in just 7 scattered
+      years and peaks in the FINAL snapshot (83%, 2020). That is mechanical: a
+      10-years-post-entry earnings measure only exists once a cohort matures.
+      => "earnings over time" is effectively UNDELIVERABLE from this dataset.
+      Earnings at a point in time, and its relationship to price and sector, is
+      well supported.
+
+  (c) ADM_RATE / RET_FT4 never reaching 50% is NOT a data defect. At 30.4% of
+      6,273 that is still ~1,910 institutions - plenty of rows, but systematically
+      the selective 4-year sector. Their Jaccard of 0.86 (63.2% both missing)
+      means they effectively come as a pair, sharing one denominator. Frame any
+      selectivity/retention analysis as "among 4-year institutions that admit",
+      never as "all colleges".
+
+PANEL SIZE BY YEAR (attrition is itself an analysable finding):
+  2015: 7,666    2016: 7,238    2017: 7,112    2018: 6,807    2019: 6,694
+  2020: 6,681    2021: 6,543    2022: 6,484    2023: 6,430    2024: 6,322
+  2025: 6,273
+
+================================================================================
+10. WHAT TO ANALYSE NEXT - RANKED BY HOW WELL THE DATA ACTUALLY SUPPORTS IT
+================================================================================
+
+TIER 1 - well supported, and the data-quality angle is built in
+
+  1. "BEST VALUE" SCHOOLS - the brief's own framing. THE RECOMMENDED SPINE.
+     The brief literally says the data "can be summarized to highlight schools
+     providing the best value". The instrument already exists:
+        value_index_earn = earn_p10_pctile_group - net_price_pctile_group
+        value_index_grad = grad_rate_pctile_group - net_price_pctile_group
+     Both are normalised WITHIN CONTROL x ICLEVEL peer groups, so it is not just
+     ranking publics above privates. Combine with dq_tier / pct_headline_complete
+     and you get a defensible headline: which institutions deliver high
+     price-adjusted earnings, and how much does the answer depend on restricting
+     to the 23.7% of institutions that have all ten headline metrics? This
+     satisfies Goal 4a's "consider effects of data quality" head-on.
+
+  2. AFFORDABILITY vs ACCESS, 2009-2016.
+     Uses net_price, COSTT4_A, PCTPELL, MD_FAMINC, TUITIONFEE_IN. Did rising net
+     price coincide with falling Pell share, and does it differ by sector?
+     Full window, good coverage. The shrinking panel N is part of the story.
+
+  3. REPAYMENT / DEBT BURDEN by sector and completion.
+     RPY_3YR_RT + grad_debt_mdn + grad_debt_to_earn + grad_rate, 2009-2016.
+     Nonprofit vs for-profit is the live comparison. Caveat ready-made: 19.6% of
+     grad_debt_mdn is privacy-suppressed, and suppression concentrates exactly in
+     the small for-profit schools you most want to talk about.
+
+TIER 2 - supported, with explicit caveats
+
+  4. THE DATA-QUALITY GRADIENT AS THE FINDING ITSELF.
+     Public 4-year: 87.1% mean completeness and 57.5% "high DQ", vs private
+     for-profit 2-year at 64.9% and 0.0%, with mean privacy suppression up to
+     0.62 in short-program publics. i.e. the institutions serving the neediest
+     students are the ones whose outcomes data is most withheld. Strong for an
+     EDA-flavoured project and it uses Goal 2's machinery as the substance.
+
+  5. INSTITUTION CLOSURES / PANEL ATTRITION.
+     Panel N falls 7,666 (2015) -> 6,273 (2025). Who exits - by sector, size, DQ
+     tier? CURROPER is 100% populated, so this is testable, and it explains why
+     the panel shrinks.
+
+TIER 3 - possible but weak; say so up front if used
+
+  6. PROGRAM-LEVEL (field-of-study) OUTCOMES.
+     field_of_study_by_cip2_latest.csv (375 rows) is clean and pleasant. But the
+     228k-row detail is up to 90.6% privacy-suppressed on earnings/debt, and
+     7,020 rows / 778 institutions cannot be joined at all (see trap 5 below).
+     Usable for "which CIP families are large", not for "what do a program's
+     graduates earn" at small schools.
+
+  7. ADMISSION RATE / SELECTIVITY.
+     Only within the ~1,910 reporting 4-year institutions, and only as a
+     sub-population statement.
+
+RECOMMENDATION (carried over from the previous session): take Tier 1 #1 (the
+value index) as the spine, with Tier 2 #4 (the data-quality gradient) as the
+critical lens. That combination uses the recodes already built, speaks directly
+to the brief's affordability + access + outcomes framing, makes data quality part
+of the argument rather than a closing caveat, and has an honest punchline
+available: "the 'best value' ranking is least reliable precisely for the
+institutions serving the neediest students."
+
+The alternative spine is #2/#3 (affordability vs access, 2009-2016) if the group
+prefers a cleaner time-series story over the value-ranking one.
+
+================================================================================
+11. TRAPS THAT WILL BITE A GOAL-4 ANALYSIS
+================================================================================
+
+ 1. THE PANEL IS ONE ROW PER INSTITUTION PER SOURCE FILE. 208,759 rows for
+    ~6,300-7,700 institutions. UNITID is the only reliable join key and is NOT
+    deduplicated. Any count or aggregate that forgets this is wrong by ~30x.
+
+ 2. SELECTION IS CORRELATED WITH EVERYTHING YOU WOULD MEASURE. Completeness vs
+    log(enrolment) = 0.64; only 23.7% of institutions have all ten headline
+    metrics. Any model on the headline metrics silently over-represents large
+    public 4-year institutions. Report dq_tier / pct_headline_complete alongside
+    EVERY result.
+
+ 3. STRUCTURAL CEILINGS ARE NOT GAPS. 44 of the 113 core variables never reach
+    80% coverage in ANY year. Do not impute; do not silently drop. Declare the
+    denominator for every statistic.
+
+ 4. "PS" AND "NA" MEAN DIFFERENT THINGS.
+      NA = not collected / not applicable / not available.
+      PS = "PrivacySuppressed": collected but withheld because the group was too
+           small to publish.
+    PS carries information (small cohort size); NA does not.
+    n_headline_privacy_suppressed and mean_privacy_suppressed already count PS.
+    Treat them differently in the write-up.
+
+ 5. THE 7,020 TEXT-"NA" UNITIDs. In the field-of-study file, 7,020 program rows
+    (778 institutions, mostly foreign or closed - e.g. "Aarhus University", plus
+    a few US schools like "Judson College") carry the literal TEXT "NA" in the
+    UNITID column. Scorecard publishes their programs but no institution-level
+    ID, so they can NEVER be joined to the institution file. Filter on the
+    has_unitid flag before joining or aggregating.
+    (The earlier, misleading name for this flag was is_institution_row.)
+
+ 6. TWO-YEAR MOVING AVERAGES. The brief warns that some values are 2-year rolling
+    means (e.g. C150_4_POOLED, RET_FT4_POOLED, RPY_3YR_RT). This induces
+    autocorrelation and blunts single-year shocks. Do not over-read one-year
+    moves.
+
+ 7. MISSINGNESS CLUSTERS. PCTPELL and PCTFLOAN have Jaccard 1.00 - they are the
+    SAME 828 institutions. Treating them as two independent predictors is a
+    statistical mistake.
+
+ 8. NET PRICE ABOVE STICKER IS NOT A BUG. See section 8. 19.5% of institutions
+    trip that check legitimately. Only the 12 negative net prices and 11
+    zero-enrolment rows are genuine errors (0.2% each).
+
+ 9. rscorecard / API: each member needs their OWN DATAGOV_API_KEY, in the HOME
+    .Renviron, never hard-coded in a .R script, never in the repo.
+
+================================================================================
+12. THE DECISIONS THE USER NEEDS TO MAKE (settle these before writing code)
+================================================================================
+
+QUESTION 1: WHICH SPINE?
+   (A) The "best value" index + data-quality lens   [Tier 1 #1 + Tier 2 #4]
+       - recommended; reuses the existing recodes; matches the brief's own framing
+   (B) Affordability vs access over time, 2009-2016  [Tier 1 #2/#3]
+       - a cleaner time-series story
+   (C) Something else the group proposes
+   Then define a SERIES of specific questions under it (Goal 4a asks for
+   "a series of defined questions", not one headline).
+
+QUESTION 2: DOES THE EXTRACT NEED NEW COLUMNS?
+   The extract carries 113 of 3,308 raw variables (3.4%). If the chosen question
+   needs instructional spending per FTE, faculty counts, cohort denominators
+   (D150_4, OMACHT6_FTFT), 200%-time completion (C200_4), or extra demographics,
+   that means editing the CORE_* sets in 00_common.R (~lines 331-370) - and the
+   panel column list in 02 if it is a time-series variable - then re-running
+   script 02 (~15 s). Small job, but it changes what is available, so settle it
+   EARLY.
+   Check availability first with:
+     Docs/DataReference/reference/03_institution_variables.csv
+     Docs/DataReference/reference/06_cohort_coverage.csv
+     EDA/reports/variable_audit_institution_latest.csv
+
+QUESTION 3 (housekeeping, optional): delete the redundant 448 MB zip in data/?
+
+================================================================================
+13. COMPLETE FILE INVENTORY (what each file is for)
+================================================================================
+
+ROOT
+  README.md            Repo overview: layout, why the data is not on GitHub,
+                       one-time download steps, how to run the pipeline. START HERE.
+  CONTEXT.txt          THIS FILE (currently untracked - commit it or not, your
+                       call; it contains no secrets).
+  .gitignore           The data-management rules (section 3). Heavily commented.
+  .gitattributes       "* text=auto" (LF normalisation).
+
+DOCS
+  Docs/Group Project I.pdf        The assignment brief. 1 page. Read it.
+  Docs/APIWalkthrough.md          Step-by-step: get an API key, put it in
+                                  ~/.Renviron, verify with rscorecard.
+  Docs/DataReference/             TEAMMATE'S REFERENCE PACK (generated 20 Sep 2026;
+                                  read its INDEX.md first). Read-only.
+    CollegeScorecard_Data_Structure.pdf   Plain-English explainer. Read first.
+    CollegeScorecard_Data_Structure.html  Same thing, browser-readable.
+    INDEX.md                              What each file is + the mental model.
+    reference/00_readme_and_key_tabs.md   The dictionary workbook's own README
+                                          and all 8 tabs, reorganised. 12 KB.
+    reference/01_glossary.csv             Glossary (AY, CY, DCY, FY, NSLDS,
+                                          IPEDS, CIP...). 17 rows.
+    reference/02_changelog.csv            Variable changelog, 14 KB.
+    reference/03_institution_variables.csv  MASTER TRANSLATION TABLE: 3,318 rows
+                                          = variable_name, category, api_path,
+                                          api_field_latest, name_of_data_element,
+                                          api_data_type, indexed_in_api, source,
+                                          shown_use_on_site, notes, n_value_labels
+    reference/04_institution_variables_by_category.md   Same variables grouped by
+                                          category, with each coded variable's
+                                          lookup table rendered inline. 656 KB.
+    reference/05_value_labels.csv         277 value/label pairs for coded vars.
+    reference/06_cohort_coverage.csv      PER-VARIABLE FEASIBILITY CHECK: 3,308
+                                          rows with years_with_data_count, first /
+                                          last year, the full year list, and which
+                                          cohort each year actually measures.
+                                          Use this BEFORE promising a time series
+    reference/07_field_of_study_variables.csv   178 FoS variables (these are keys
+                                          INSIDE the API's nested
+                                          latest.programs.cip_4_digit[] array).
+    reference/07b_field_of_study_value_labels.csv
+    reference/08_api_field_paths.txt      Copy/paste API paths by category.
+    reference/09_api_path_validation.csv  Live-API check of each path.
+
+    NOTE: these teammate files start with a UTF-8 BOM (visible as a leading
+    character). Harmless in R/data.table, but use fileEncoding if a tool chokes.
+
+SCRIPTS (non-EDA)
+  scripts/APIEndpointTest.R       Tiny API smoke test: sc_dict("grad_rate").
+  scripts/build_data_reference.py Python; regenerates Docs/DataReference. It only
+                                  ever READS the dictionary xlsx.
+                                  Usage: python scripts/build_data_reference.py
+                                         [--skip-api]   (offline, no API calls)
+                                         [--no-pdf]
+
+EDA
+  EDA/README.md                   THE MAIN WRITE-UP. Diagnosis (why the raw files
+                                  will not open), usage, findings, caveats.
+                                  173 lines. Read right after the brief.
+  EDA/scripts/00_common.R         Shared. 443 lines. See section 5.
+  EDA/scripts/01_size_limits_check.R        116 lines, ~10 s.
+  EDA/scripts/02_build_simplified_data.R    300 lines, ~15 s. Writes simplified/.
+  EDA/scripts/03_eda_quality_report.R       433 lines, ~75-90 s. Writes reports/
+                                            + figures/ + EDA_SUMMARY.md.
+
+  EDA/simplified/   (git-ignored; regenerate with script 02)
+    institution_core_latest.csv      6,273 x 143    5.97 MB   <- main cross-section
+    institution_core_latest.xlsx     6,273 x 143    3.72 MB   (typed numbers)
+    panel_core_1996_2025.csv       208,759 x  26   27.43 MB   <- time series
+    field_of_study_core_latest.csv 227,980 x  23   41.78 MB   <- program detail
+    field_of_study_by_cip2_latest.csv  375 x  12    0.03 MB   <- CIP family summary
+
+  EDA/reports/  (ALL tracked in git - they are small)
+    EDA_SUMMARY.md                       9 sections. THE generated results doc.
+    variable_audit_institution_latest.csv   3,308 rows: every column's pct_missing,
+                                         pct_privacy, n_unique, missing_tier.
+                                         USE THIS INSTEAD OF OPENING THE RAW FILE.
+    variable_audit_field_of_study_latest.csv   178 rows, same idea.
+    headline_metric_quality_scores.csv   The ten metrics with quality_score and
+                                         coverage_flag.
+    core_variable_coverage_by_year.csv   113 vars x 31 years, long format.
+    core_variable_coverage_matrix.csv    Same thing, wide.
+    core_variable_first_usable_year.csv  First/last year at >=80% coverage.
+    missingness_cooccurrence_latest.csv  Top co-missing pairs.
+    missingness_jaccard_matrix_latest.csv   Full Jaccard matrix.
+    completeness_vs_size.csv             DQ vs enrolment.
+    row_completeness_by_group.csv        DQ by CONTROL x ICLEVEL.
+    data_anomalies_latest.csv            The 10 logical checks.
+    earnings_vs_netprice_correlation.csv
+    size_limits_check.csv / .md          The per-file verdicts.
+    column_budget_vs_cell_limits.csv     How many columns fit in Sheets.
+    simplified_codebook.csv              164 rows: every extract column defined.
+    simplified_outputs_manifest.csv      The five outputs with row/col/cell counts.
+
+  EDA/figures/  (tracked)
+    coverage_by_year.png             Core-variable coverage over time.
+    earnings_vs_netprice.png         The one existing relationship plot.
+    missingness_core_latest.png      Missingness heatmap.
+    row_completeness_by_sector.png   DQ by sector (the "who reports" figure).
+
+================================================================================
+14. QUICK DIAGNOSTIC COMMANDS (if something looks wrong)
+================================================================================
+
+  Is the raw data in place?
+    ls data/College_Scorecard_Raw_Data_06032026/ | wc -l       # expect ~42
+
+  Are the extracts built?
+    ls -la EDA/simplified/                                     # expect 5 files
+
+  What does git think is tracked under data/ ?
+    git ls-files data          # expect EXACTLY ONE file: the codebook xlsx
+
+  Confirm the big files are ignored (each must print a .gitignore line):
+    git check-ignore -v data/College_Scorecard_Raw_Data_06102026.zip
+    git check-ignore -v EDA/simplified/panel_core_1996_2025.csv
+
+  Sanity-check the extract before analysing it:
+    Rscript -e 'd <- data.table::fread("EDA/simplified/institution_core_latest.csv");
+                cat(nrow(d), "rows x", ncol(d), "cols\n"); print(table(d$dq_tier))'
+
+  Set the project root manually (in RStudio, if a script complains):
+    Sys.setenv(SC_PROJECT_ROOT = "C:/path/to/Group-Project-1")
+    source("EDA/scripts/00_common.R")
+
+================================================================================
+15. GLOSSARY OF THE SHORTHAND USED HERE
+================================================================================
+
+  Scorecard      the College Scorecard dataset (US Dept of Education).
+  UNITID         the institution ID. The primary join key. Can also appear as the
+                 literal text "NA" (see trap 5).
+  MERGED####_##  the yearly institution-level files, 1996_97 ... 2025_26 (30 of
+                 them). One row per institution per year, 3,308 columns.
+  FoS            Field of Study - one row per institution x CIP program. Only
+                 starts 2014-15. Fewer columns (178), many more rows.
+  CIP            Classification of Instructional Programs (the program code).
+                 cip2 = the 2-digit program family.
+  UGDS           undergraduate degree/certificate-seeking enrolment. The main size
+                 measure, and the one with the best historical coverage.
+  NPT4_*         net price for Title IV students (PUB = public, PRIV = private).
+  C150_4 / L4    150%-of-expected-time completion rate (4-year / less-than-4).
+  C200_4         200%-of-expected-time completion rate.
+  GRAD_DEBT_MDN  median federal debt of graduates.
+  MD_EARN_WNE_P10   median earnings, working and not enrolled, 10 years after
+                 entry. The earnings headline measure.
+  RPY_3YR_RT     3-year cohort repayment rate.
+  PS             "PrivacySuppressed" - collected but withheld (group too small).
+  NA             not collected / not applicable / not available.
+  DQ / dq_tier   data quality.
+  Jaccard        both-missing / either-missing. 1.00 means they go missing
+                 together, i.e. they are not independent.
+  headline       the TEN metrics the group is most likely to model on: ADM_RATE,
+                 UGDS, TUITIONFEE_IN, net_price, PCTPELL, PCTFLOAN, grad_rate,
+                 RET_FT4, earn_p10, grad_debt_mdn.
+  Sheets limit   10,000,000 cells per Google Sheets spreadsheet (all tabs).
+
+================================================================================
+16. BOTTOM LINE FOR THE NEXT INSTANCE
+================================================================================
+
+  DONE : Goals 1, 2 and 3. The pipeline runs clean end-to-end in ~2 minutes.
+         Committed and pushed. 18 report tables, 4 figures, a 9-section summary,
+         2 READMEs, all verified.
+
+  LEFT : Goal 4 only - "identify and display any relationships of interest, using
+         the recoded variables, considering effects of data quality, answering a
+         series of defined questions."
+
+  NEXT : Ask the user to pick a spine (section 12, Question 1) and confirm whether
+         the extract needs new raw columns (Question 2). Then write the series of
+         defined questions and build the analysis on top of
+         EDA/simplified/institution_core_latest.csv (cross-section) and
+         panel_core_1996_2025.csv (time series, sweet spot 2009-2016).
+
+  DON'T: re-run the audit, re-derive the missingness/quality findings, reorganise
+         the repo, re-commit the EDA work, or try to open the raw 3,308-column
+         CSVs in Excel/Sheets. All of that is settled.
+
+  PRIOR EFFORT SUMMARY: roughly 1,292 lines of R across 4 scripts, a full-column
+  audit of 3,486 raw variables (3,308 institution + 178 field-of-study), 18 report
+  tables, 4 figures, and a
+  data-management layer that keeps 4 GB out of git. The remaining analytical work
+  can be built directly on EDA/simplified/institution_core_latest.csv without
+  touching the raw data at all - which is the whole point of the EDA phase.
+
+================================================================================
+END OF CONTEXT FILE
+================================================================================
