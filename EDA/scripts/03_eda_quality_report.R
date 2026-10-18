@@ -99,11 +99,11 @@ q <- rbindlist(lapply(names(METRIC_SOURCES), function(m) {
     pct_complete       = round(100 * completeness, 1),
     n_privacy_suppressed = n_ps,
     pct_privacy_suppressed = round(100 * ps_share, 1),
-    n_unique           = uniqueN(v),
-    pct_unique         = round(100 * uniqueN(v) / max(1, sum(!is.na(v))), 1),
+    n_unique           = uniqueN(v, na.rm = TRUE),
+    pct_unique         = round(100 * uniqueN(v, na.rm = TRUE) / max(1, sum(!is.na(v))), 1),
     median             = round(median(v, na.rm = TRUE), 2),
-    # quality = how much of the population is actually measured, after
-    # removing cells that were withheld for privacy reasons.
+    # Custom heuristic: penalizes suppression in addition to missingness.
+    # Suppressed cells are already missing; this is not an accuracy probability.
     quality_score      = round(100 * completeness * (1 - ps_share), 1),
     coverage_flag      = fifelse(completeness >= 0.90, "usable (>=90%)",
                           fifelse(completeness >= 0.50, "thin (50-90%)",
@@ -203,7 +203,7 @@ anomalies <- data.table(
   check = c("net price below zero", "tuition below zero", "graduation rate above 1",
             "retention rate above 1", "PCTPELL above 1", "PCTFLOAN above 1",
             "zero undergraduate enrollment (UGDS == 0)", "earnings below zero",
-            "debt-to-earnings above 5", "net price above sticker tuition (grants exceed tuition)"),
+            "debt-to-earnings above 5", "net price above tuition (different cost concepts)"),
   n_institutions = c(sum(inst$net_price < 0, na.rm = TRUE),
                      sum(inst$TUITIONFEE_IN < 0, na.rm = TRUE),
                      sum(inst$grad_rate > 1, na.rm = TRUE),
@@ -213,7 +213,7 @@ anomalies <- data.table(
                      sum(inst$UGDS == 0, na.rm = TRUE),
                      sum(inst$earn_p10 < 0, na.rm = TRUE),
                      sum(inst$grad_debt_to_earn > 5, na.rm = TRUE),
-                     sum(inst$TUITIONFEE_IN > inst$net_price, na.rm = TRUE)))
+                     sum(inst$net_price > inst$TUITIONFEE_IN, na.rm = TRUE)))
 anomalies[, pct_of_institutions := round(100 * n_institutions / n_inst, 2)]
 fwrite(anomalies, file.path(REPORTS_DIR, "data_anomalies_latest.csv"))
 
@@ -255,7 +255,7 @@ ggsave(file.path(FIGURES_DIR, "row_completeness_by_sector.png"), p3,
        width = 8, height = 5, dpi = 150)
 
 sc <- inst[!is.na(earn_p10) & !is.na(net_price) & net_price > 0 &
-             dq_tier == "High (>=90%)"]
+             pct_headline_complete == 100]
 sp <- sc[, .(institutions = .N,
              spearman_net_price_vs_earnings = round(cor(net_price, earn_p10,
                                                         method = "spearman"), 2),
@@ -376,6 +376,10 @@ paste0("One join trap in the same file: **", fnum(fos_noid), " program rows (",
 "",
 "## 4. Numeric quality scores for the ten headline metrics",
 "",
+"This is a custom coverage heuristic, not an accuracy probability. Suppressed cells already count as missing; the suppression factor adds a second penalty. Whole-file thresholds do not account for metric applicability.",
+"",
+"This is a custom coverage heuristic, not an accuracy probability. Suppressed cells already count as missing; the suppression factor adds a second penalty. Whole-file thresholds do not account for metric applicability.",
+"",
 "`quality_score = 100 x (share of institutions with a value) x (1 - share of cells withheld as PS)`.",
 "",
 md_table(q[, .(metric, pct_complete, pct_privacy_suppressed, pct_unique, quality_score, coverage_flag)]),
@@ -418,7 +422,7 @@ md_table(anomalies),
 "",
 "## 9. Suggested next steps",
 "",
-"1. Use `simplified/panel_core_1996_2025.csv` for anything time-related (26 columns x ~209k institution-years, one row per institution per source file). Filter `year_start >= 2000` for a panel where tuition, admissions and completion are all populated.",
+"1. Use the panel for source-year comparisons; determine availability from observed per-variable coverage, not filenames. Nominal dollars do not measure purchasing-power change.",
 "2. Use `simplified/institution_core_latest.csv` (or the .xlsx) for cross-sectional questions; the `*_pctile_group` and `value_index_*` columns already normalise price and outcomes inside sector x level peer groups.",
 "3. Use `simplified/field_of_study_by_cip2_latest.csv` (375 rows) when exploring programs, and `field_of_study_core_latest.csv` only when the full 228k-row detail is needed.",
 paste0("4. Report the `dq_tier` column alongside any result - only ", share_all_ten,

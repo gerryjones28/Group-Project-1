@@ -1,0 +1,497 @@
+# 04_streams.R -----------------------------------------------------------------
+# Assignment Goal 4: "Identify and display any relationships of interest.
+#   a. Ideally, these will use some of the recoded variables above, consider
+#      effects of data quality, and answer a series of defined questions.
+#   b. Outcomes might cover access, affordability, student outcomes, or other
+#      categories."
+#
+# The four blocks below ARE the group's four streams. Each block writes its own
+# tables to EDA/reports/ and its own figures to EDA/figures/, all prefixed with
+# the stream letter, so the person who owns a stream only edits their own block
+# and only reviews their own outputs.
+#
+#   Stream A  Access ............ who is enrolled, and where     (cross-section)
+#   Stream B  Affordability ..... price over time + income bands (panel + cross)
+#   Stream C  Outcomes & Value .. best value, and is it robust?  (cross-section)
+#   Stream D  Data Quality ...... reported vs reality, attrition (cross + panel)
+#
+# Every block carries the data-quality caveat from Prep 2 with it, because
+# Goal 4a marks you on "consider effects of data quality".
+#
+# Usage:
+#   Rscript EDA/scripts/04_streams.R        # all four streams
+#   Rscript EDA/scripts/04_streams.R A      # one stream only (A/B/C/D)
+#
+# NOTE: on this machine R is installed but not on PATH. Use the full path:
+#   & "C:\Program Files\R\R-4.5.2\bin\Rscript.exe" EDA/scripts/04_streams.R
+
+.self_dir <- function() {
+  a <- commandArgs(trailingOnly = FALSE); h <- grep("^--file=", a, value = TRUE)
+  if (length(h)) normalizePath(dirname(sub("^--file=", "", h[[1]]))) else normalizePath(getwd())
+}
+source(file.path(.self_dir(), "00_common.R"))
+suppressPackageStartupMessages({ library(ggplot2); library(scales) })
+
+INST_CSV  <- file.path(SIMPLIFIED_DIR, "institution_core_latest.csv")
+PANEL_CSV <- file.path(SIMPLIFIED_DIR, "panel_core_1996_2025.csv")
+
+# ---- which streams to run ---------------------------------------------------
+want <- toupper(commandArgs(trailingOnly = TRUE))
+if (any(!want %in% c("A", "B", "C", "D"))) stop("Choose A, B, C, or D")
+run_stream <- function(s) !length(want) || s %in% want
+require_files(INST_CSV, "the institution extract", "run script 02 first")
+inst <- fread(INST_CSV)
+stopifnot(!anyNA(inst$UNITID), !anyDuplicated(inst$UNITID))
+panel <- NULL
+if (run_stream("B") || run_stream("D")) {
+  if (file.exists(PANEL_CSV)) {
+    panel <- fread(PANEL_CSV)
+    stopifnot(!anyNA(panel$UNITID), !anyNA(panel$year_start),
+              !anyDuplicated(panel[, .(year_start, UNITID)]))
+  } else log_step("Panel absent: B1/B2/D4 skipped; cross-sectional analyses continue")
+}
+
+# ---- output helpers ---------------------------------------------------------
+out <- function(name) file.path(REPORTS_DIR, paste0("stream_", name, ".csv"))
+fig <- function(name) file.path(FIGURES_DIR, paste0("stream_", name, ".png"))
+
+save_fig <- function(p, name, width = 9, height = 5.5) {
+  ggsave(fig(name), p, width = width, height = height, dpi = 150)
+  log_step("  figure -> ", basename(fig(name)))
+}
+
+# "Is this institution minority-serving?" -- tolerant of how the extract
+# spelled it, and falls back to the raw flags if the recode is absent.
+msi_flag <- function(d) {
+  if ("minority_serving" %in% names(d)) {
+    v <- tolower(trimws(as.character(d$minority_serving)))
+    ans <- !v %in% c("", "none", "not msi", "na")
+    ans[is.na(v) | v %in% c("", "na")] <- NA
+    return(ans)
+  }
+  flags <- intersect(c("HBCU", "PBI", "TRIBAL", "HSI", "ANNHI", "AANAPII", "NANTI"),
+                     names(d))
+  if (!length(flags)) return(rep(NA, nrow(d)))
+  m <- as.matrix(d[, ..flags])
+  ans <- rowSums(m == 1, na.rm = TRUE) > 0
+  ans[rowSums(!is.na(m)) == 0] <- NA
+  ans
+}
+
+set(inst, j = "is_msi", value = msi_flag(inst))
+
+# Spearman rank correlation on complete pairs only.
+safe_spearman <- function(x, y) {
+  ok <- !is.na(x) & !is.na(y)
+  if (sum(ok) < 3) return(NA_real_)
+  cor(x[ok], y[ok], method = "spearman")
+}
+
+log_step("institution rows: ", fnum(nrow(inst)), " | panel rows: ", fnum(nrow(panel)))
+log_step("streams requested: ", if (length(want)) paste(want, collapse = ",") else "all")
+# =============================================================================
+# STREAM A - ACCESS: who is enrolled, and where?
+# Owner: ____________
+#   A1  Where are minority-serving institutions concentrated, by sector /
+#       region / locale?
+#   A2  Does enrolment composition differ by sector and selectivity?
+#   A3  Is Pell / low-income access concentrated in particular sectors?
+# Data-quality hook: every table reports n (institutions with the figure) next
+# to the share. PCTPELL is 86.8% complete, ADM_RATE only 30.4% - so any
+# selectivity statement is about the ~1,910 schools that report it, not all 6,273.
+# =============================================================================
+
+if (run_stream("A")) {
+  log_step("STREAM A - access: who is enrolled, and where?")
+
+  msi_by <- function(g) {
+    inst[, .(institutions = .N,
+             n_msi_known  = sum(!is.na(is_msi)),
+             n_msi        = sum(is_msi, na.rm = TRUE),
+             pct_msi      = 100 * mean(is_msi, na.rm = TRUE)),
+         by = g][order(-pct_msi)]
+  }
+  a1_sector <- msi_by("control_label")
+  a1_region <- msi_by("region_label")
+  a1_locale <- msi_by("locale_label")
+  fwrite(a1_sector, out("a1_msi_by_sector"))
+  fwrite(a1_region, out("a1_msi_by_region"))
+  fwrite(a1_locale, out("a1_msi_by_locale"))
+  log_step("  A1: ", nrow(a1_sector), " sectors / ", nrow(a1_region),
+           " regions / ", nrow(a1_locale), " locales written")
+
+  p_a1 <- ggplot(a1_sector, aes(x = reorder(control_label, pct_msi), y = pct_msi)) +
+    geom_col(fill = "#0b5fa5") +
+    coord_flip() +
+    labs(title = "Share of institutions that are minority-serving, by sector",
+         subtitle = paste0("n = ", fnum(nrow(inst)), " institutions, most-recent snapshot"),
+         x = NULL, y = "% minority-serving") +
+    theme_minimal(base_size = 11)
+  save_fig(p_a1, "a1_msi_by_sector", 8, 4)
+
+  # A2 - enrolment composition by sector x selectivity.
+  race_cols <- intersect(c("UGDS_WHITE", "UGDS_BLACK", "UGDS_HISP", "UGDS_ASIAN",
+                           "UGDS_AIAN", "UGDS_NHPI", "UGDS_2MOR", "UGDS_NRA",
+                           "UGDS_UNKN"), names(inst))
+  if (length(race_cols)) {
+    a2 <- inst[, c(list(institutions = .N),
+                   setNames(lapply(.SD, function(x) sum(!is.na(x))), paste0("n_", race_cols)),
+                   lapply(.SD, function(x) 100 * mean(x, na.rm = TRUE))),
+               by = .(control_label, selectivity_bin), .SDcols = race_cols]
+    fwrite(a2, out("a2_composition_by_sector_selectivity"))
+    log_step("  A2: ", length(race_cols), " race/ethnicity shares x ",
+             nrow(a2), " sector-selectivity cells")
+  }
+
+  # A3 - Pell / low-income access by sector x level.
+  has_lo <- "INC_PCT_LO" %in% names(inst)
+  a3 <- inst[, .(institutions   = .N,
+                 n_pell         = sum(!is.na(PCTPELL)),
+                 mean_pct_pell  = mean(PCTPELL, na.rm = TRUE),
+                 n_lowinc       = if (has_lo) sum(!is.na(INC_PCT_LO)) else NA_integer_,
+                 mean_pct_lowinc = if (has_lo) mean(INC_PCT_LO, na.rm = TRUE) else NA_real_),
+             by = .(control_label, level_label)][order(-mean_pct_pell)]
+  fwrite(a3, out("a3_pell_access_by_sector_level"))
+  log_step("  A3: Pell / low-income access written for ", nrow(a3), " sector x level groups")
+
+  p_a3 <- ggplot(a3[!is.na(mean_pct_pell)],
+                 aes(x = reorder(control_label, mean_pct_pell), y = 100 * mean_pct_pell,
+                     fill = level_label)) +
+    geom_col(position = "dodge") +
+    labs(title = "Pell share by sector and level",
+         subtitle = "Higher = more low-income students. n = institutions that report PCTPELL.",
+         x = NULL, y = "Mean % of undergraduates on Pell", fill = NULL) +
+    theme_minimal(base_size = 11)
+  save_fig(p_a3, "a3_pell_by_sector_level", 9, 4.5)
+}
+# =============================================================================
+# STREAM B - AFFORDABILITY: did price move, and who paid more?
+# Owner: ____________
+#   B1  How does nominal net price vary across observed source years and peers?
+#   B2  Did the sticker <-> net gap widen?
+#   B3  How does the latest high-minus-low-income net-price gap differ across peers?
+# Data-quality hook: the panel loses institutions every year (7,666 in 2015 ->
+# 6,273 in 2025), so n is printed beside every mean. A trend built on a changing
+# set of schools is not a like-for-like trend - say so in the write-up.
+# =============================================================================
+
+if (run_stream("B")) {
+  log_step("STREAM B - affordability: net price over time")
+
+  if (!is.null(panel)) {
+  # Years selected from observed cells, not filenames or a global 80% threshold.
+  coverage <- panel[, .(institutions = .N, n_net_price = sum(!is.na(net_price)),
+                         n_tuition = sum(!is.na(TUITIONFEE_IN)),
+                         n_paired = sum(!is.na(net_price) & !is.na(TUITIONFEE_IN))),
+                     by = year_start][order(year_start)]
+  fwrite(coverage, out("b0_observed_coverage"))
+  usable_years <- coverage[n_net_price > 0, year_start]
+  if (!length(usable_years)) stop("Panel contains no observed net prices")
+  Y0 <- min(usable_years); Y1 <- max(usable_years)
+  pb <- panel[year_start %in% usable_years]
+  log_step("  panel window: ", Y0, "-", Y1, " (", fnum(nrow(pb)), " institution-years)")
+
+  b1 <- pb[, .(n_inst            = sum(!is.na(net_price)),
+               mean_net_price    = mean(net_price, na.rm = TRUE),
+               median_net_price  = as.numeric(median(net_price, na.rm = TRUE)),
+               n_tuition = sum(!is.na(TUITIONFEE_IN)),
+               n_cost_attend = sum(!is.na(COSTT4_A)),
+               mean_tuition_in   = mean(TUITIONFEE_IN, na.rm = TRUE),
+               mean_cost_attend  = mean(COSTT4_A, na.rm = TRUE)),
+           by = .(year_start, control_label, level_label)]
+  setorder(b1, control_label, level_label, year_start)
+  fwrite(b1, out("b1_price_by_year_sector_level"))
+  log_step("  B1: net price / tuition / cost of attendance, ",
+           nrow(b1), " year x sector x level rows")
+
+  p_b1 <- ggplot(b1[!is.na(mean_net_price)],
+                 aes(year_start, mean_net_price, colour = control_label)) +
+    geom_line(linewidth = 1) + geom_point(size = 2) +
+    facet_wrap(~ level_label) +
+    scale_y_continuous(labels = dollar) +
+    labs(title = paste0("Average net price by sector, ", Y0, "-", Y1),
+         subtitle = "Nominal source-reported dollars; changing institution mix; not purchasing-power changes",
+         x = "Source-file year", y = "Mean net price", colour = NULL) +
+    theme_minimal(base_size = 11)
+  save_fig(p_b1, "b1_net_price_trend", 10, 5)
+
+  # B2 - tuition minus total-attendance net price; this is NOT grant aid.
+  pb[, sticker_net_gap := TUITIONFEE_IN - net_price]
+  b2 <- pb[, .(n_inst   = sum(!is.na(sticker_net_gap)),
+               mean_gap = mean(sticker_net_gap, na.rm = TRUE)),
+           by = .(year_start, control_label)]
+  setorder(b2, control_label, year_start)
+  fwrite(b2, out("b2_sticker_net_gap_by_year"))
+  log_step("  B2: sticker-minus-net gap written")
+
+  p_b2 <- ggplot(b2[!is.na(mean_gap)],
+                 aes(year_start, mean_gap, colour = control_label)) +
+    geom_line(linewidth = 1) + geom_point(size = 2) +
+    scale_y_continuous(labels = dollar) +
+    labs(title = paste0("Tuition minus total-attendance net price, ", Y0, "-", Y1),
+         subtitle = "Paired institutions; nominal dollars. This difference does not measure grant aid.",
+         x = "Source-file year", y = "Mean gap (USD)", colour = NULL) +
+    theme_minimal(base_size = 11)
+  save_fig(p_b2, "b2_sticker_net_gap", 9, 5)
+  }
+
+  # B3 - income bands. IMPORTANT: net_price_lowinc / net_price_highinc are in the
+  # cross-section only, NOT in the panel, so this is a LATEST-YEAR statement.
+  # To trend it, add NPT41_PUB/PRIV and NPT45_PUB/PRIV to the panel column list
+  # in 02_build_simplified_data.R and re-run that script (~15 s).
+  band_cols <- c("net_price_lowinc", "net_price_highinc", "net_price_income_gap")
+  if (all(band_cols %in% names(inst))) {
+    b3 <- inst[!is.na(net_price_lowinc) & !is.na(net_price_highinc),
+               .(n_inst       = .N,
+                   mean_lowinc  = mean(net_price_lowinc, na.rm = TRUE),
+                   mean_highinc = mean(net_price_highinc, na.rm = TRUE),
+                   mean_gap     = mean(net_price_income_gap, na.rm = TRUE)),
+               by = .(control_label, level_label)][order(-mean_gap)]
+    fwrite(b3, out("b3_income_band_gap_latest"))
+    log_step("  B3: income-band gap (LATEST YEAR ONLY) written for ", nrow(b3), " groups")
+
+    p_b3 <- ggplot(b3[!is.na(mean_gap)],
+                   aes(x = reorder(paste0(control_label, "\n", level_label), mean_gap),
+                       y = mean_gap)) +
+      geom_col(fill = "#a2470a") +
+      coord_flip() +
+      scale_y_continuous(labels = dollar) +
+      labs(title = "Net-price gap: high-income minus low-income families",
+           subtitle = paste0("Latest snapshot only - this gap cannot be trended with the ",
+                             "current panel"),
+           x = NULL, y = "Mean gap (USD)") +
+      theme_minimal(base_size = 11)
+    save_fig(p_b3, "b3_income_band_gap", 9, 5)
+  } else {
+    log_step("  B3 SKIPPED: income-band columns absent from the extract")
+  }
+}
+# =============================================================================
+# STREAM C - OUTCOMES & VALUE: which schools are "best value"?
+# Owner: ____________
+#   C1  Which institutions are best value on value_index_earn?
+#   C2  Does the answer flip on value_index_grad?
+#   C3  Do completion and earnings agree, or rank schools differently?
+#   C4  Does the ranking survive if you keep only the well-reported schools?
+# Data-quality hook: C4 IS the quality test, and it is the one that earns marks -
+# only 23.7% of institutions have all ten headline metrics populated.
+#
+# CAREFUL: value_index_earn = earn_p10_pctile_group - net_price_pctile_group,
+# and both percentiles are computed WITHIN control x level peer groups. So the
+# mean value index per sector is ~0 BY CONSTRUCTION. Never compare group means
+# of the index; compare raw earn_p10 / net_price, or within-group dispersion.
+# =============================================================================
+
+if (run_stream("C")) {
+  log_step("STREAM C - outcomes and value")
+
+  if (!all(c("value_index_earn", "value_index_grad") %in% names(inst))) {
+    log_step("  SKIPPED: value_index_* columns absent from the extract")
+  } else {
+    # Fallback if pct_headline_complete is missing: rebuild it from the counter.
+    if (!"pct_headline_complete" %in% names(inst) && "n_headline_missing" %in% names(inst))
+      inst[, pct_headline_complete := 100 * (1 - n_headline_missing / 10)]
+
+    keep <- c("UNITID", "INSTNM", "STABBR", "control_label", "level_label", "size_bin",
+              "net_price", "earn_p10", "grad_rate", "grad_debt_to_earn",
+              "value_index_earn", "value_index_grad", "pct_headline_complete", "dq_tier")
+    keep <- intersect(keep, names(inst))
+    cv <- inst[!is.na(value_index_earn) & !is.na(value_index_grad), ..keep]
+    log_step("  institutions with both value indices: ", fnum(nrow(cv)))
+
+    # C1 - the ranking itself.
+    top25 <- head(cv[order(-value_index_earn)], 25)
+    bot25 <- head(cv[order(value_index_earn)], 25)
+    fwrite(top25, out("c1a_value_top25"))
+    fwrite(bot25, out("c1b_value_bottom25"))
+
+    p_c1 <- ggplot(head(cv[order(-value_index_earn)], 25),
+                   aes(x = reorder(paste0(INSTNM, " (", STABBR, ")"), value_index_earn),
+                       y = value_index_earn, fill = control_label)) +
+      geom_col() +
+      coord_flip() +
+      labs(title = "Top 25 by earnings-minus-price percentile index",
+           subtitle = "value_index_earn = earnings percentile - net-price percentile, within sector x level peers",
+           x = NULL, y = "Value index (-1 to +1)", fill = NULL) +
+      theme_minimal(base_size = 10)
+    save_fig(p_c1, "c1_value_top25", 9, 6)
+
+    # C2 - does the answer flip if you measure value by completion instead?
+    N_TOP  <- min(50L, nrow(cv))
+    top_e  <- head(cv[order(-value_index_earn, UNITID), UNITID], N_TOP)
+    top_g  <- head(cv[order(-value_index_grad, UNITID), UNITID], N_TOP)
+    c2 <- data.table(
+      comparison           = "top-50 by earnings index vs top-50 by completion index",
+      n_institutions_ranked = nrow(cv),
+      n_top                 = N_TOP,
+      n_overlap             = length(intersect(top_e, top_g)),
+      pct_overlap           = 100 * length(intersect(top_e, top_g)) / N_TOP,
+      spearman_all          = safe_spearman(cv$value_index_earn, cv$value_index_grad))
+    fwrite(c2, out("c2_index_agreement"))
+    log_step("  C2: top-", N_TOP, " overlap = ", c2$n_overlap, " institutions (",
+             pct1(c2$pct_overlap), "); overall Spearman = ",
+             round(c2$spearman_all, 3))
+
+    # C3 - do completion and earnings rank schools the same way, within sector?
+    c3 <- cv[, .(n = sum(!is.na(grad_rate) & !is.na(earn_p10)),
+                 spearman_grad_vs_earn = safe_spearman(grad_rate, earn_p10)),
+             by = control_label][order(spearman_grad_vs_earn)]
+    fwrite(c3, out("c3_completion_vs_earnings"))
+    log_step("  C3: completion-vs-earnings agreement written for ", nrow(c3), " sectors")
+
+    # C4 - the data-quality test: does the ranking survive dropping thin records?
+    if ("pct_headline_complete" %in% names(cv)) {
+      full <- cv[, .(UNITID, rank_all = frank(-value_index_earn, ties.method = "average"))]
+      good <- cv[pct_headline_complete >= 99.99,
+                 .(UNITID, rank_dq = frank(-value_index_earn, ties.method = "average"))]
+      cmp  <- merge(full, good, by = "UNITID")
+      c4 <- data.table(
+        n_full            = nrow(full),
+        n_complete_records = nrow(good),
+        n_compared        = nrow(cmp),
+        pct_compared      = 100 * nrow(cmp) / nrow(full),
+        spearman_full_vs_dq = safe_spearman(cmp$rank_all, cmp$rank_dq),
+        mean_abs_common_rank_shift = mean(abs(frank(cmp$rank_all) - frank(cmp$rank_dq))),
+        interpretation = "Fixed scores retain relative order under filtering; not an independent robustness test")
+      fwrite(c4, out("c4_dq_sensitivity"))
+      log_step("  C4: ranking on ", fnum(nrow(full)), " schools vs ", fnum(nrow(good)),
+               " fully-reported schools; Spearman = ", round(c4$spearman_full_vs_dq, 3))
+
+      cmp[, `:=`(rank_all_common = frank(rank_all), rank_dq_common = frank(rank_dq))]
+      fwrite(cmp, out("c4_common_institution_ranks"))
+      p_c4 <- ggplot(cmp, aes(rank_all_common, rank_dq_common)) +
+        geom_point(alpha = 0.25, colour = "#0b5fa5") +
+        geom_abline(linetype = "dashed", colour = "grey40") +
+        labs(title = "Relative ordering among the same fully reported institutions",
+             subtitle = "Fixed scores: unchanged order is mechanical, not evidence of robustness",
+             x = "Common-set rank before filtering", y = "Common-set rank after filtering") +
+        theme_minimal(base_size = 11)
+      save_fig(p_c4, "c4_rank_stability", 6.5, 6)
+    } else {
+      log_step("  C4 SKIPPED: no completeness column available")
+    }
+  }
+}
+# =============================================================================
+# STREAM D - DATA QUALITY: reported vs reality
+# Owner: ____________
+#   D1  Which institutions report least, by sector and level?
+#   D2  Where is privacy suppression concentrated, and what does it hide?
+#   D3  Does low reporting track student need (Pell)?
+#   D4  Panel attrition 2015->2025: who exits, by sector and size?
+# Why this stream also integrates: Prep 2 already computed most of this, so the
+# value-add is re-framing it as a Goal-4 finding rather than a methodology
+# section. Whoever owns D also assembles the final report.
+# =============================================================================
+
+if (run_stream("D")) {
+  log_step("STREAM D - data quality: reported vs reality")
+
+  if (!"pct_headline_complete" %in% names(inst) && "n_headline_missing" %in% names(inst))
+    inst[, pct_headline_complete := 100 * (1 - n_headline_missing / 10)]
+  has <- function(v) v %in% names(inst)
+
+  # D1 - completeness by sector x level.
+  d1 <- inst[, .(institutions      = .N,
+                 mean_pct_complete = mean(pct_headline_complete, na.rm = TRUE),
+                 pct_all_ten       = 100 * mean(pct_headline_complete >= 99.99,
+                                                na.rm = TRUE)),
+             by = .(control_label, level_label)][order(-mean_pct_complete)]
+  fwrite(d1, out("d1_completeness_by_sector_level"))
+  log_step("  D1: completeness written for ", nrow(d1), " sector x level groups")
+
+  p_d1 <- ggplot(d1[!is.na(mean_pct_complete)],
+                 aes(x = reorder(paste0(control_label, "\n", level_label),
+                                 mean_pct_complete),
+                     y = mean_pct_complete, fill = control_label)) +
+    geom_col() + coord_flip() +
+    labs(title = "How much of the data does each type of institution report?",
+         subtitle = "Mean % of the ten headline metrics that are populated",
+         x = NULL, y = "Mean % of headline metrics reported", fill = NULL) +
+    theme_minimal(base_size = 11) + theme(legend.position = "none")
+  save_fig(p_d1, "d1_completeness_by_sector", 9, 5.5)
+
+  # D2 - privacy suppression.
+  if (has("n_headline_privacy_suppressed")) {
+    d2 <- inst[, .(institutions            = .N,
+                   mean_privacy_suppressed = mean(n_headline_privacy_suppressed, na.rm = TRUE),
+                   pct_any_suppressed      = 100 * mean(n_headline_privacy_suppressed > 0,
+                                                        na.rm = TRUE)),
+               by = .(control_label, level_label)][order(-mean_privacy_suppressed)]
+    fwrite(d2, out("d2_privacy_suppression_by_sector_level"))
+    log_step("  D2: suppression highest in ", d2$control_label[1], " / ",
+             d2$level_label[1], " (", round(d2$mean_privacy_suppressed[1], 2),
+             " of 10 metrics withheld)")
+  }
+  # D3 - does poor reporting track student need?
+  if (has("PCTPELL")) {
+    inst[, pell_q := NA_character_]
+    inst[!is.na(PCTPELL) & is.finite(PCTPELL) & PCTPELL >= 0 & PCTPELL <= 1,
+         pell_q := as.character(cut(frank(PCTPELL, ties.method = "average") / .N,
+                         breaks = c(0, .25, .5, .75, 1),
+                         labels = c("Q1 lowest Pell", "Q2", "Q3", "Q4 highest Pell"),
+                         include.lowest = TRUE))]
+    d3 <- inst[!is.na(pell_q),
+               .(institutions      = .N,
+                 min_pell = min(PCTPELL), max_pell = max(PCTPELL),
+                 mean_pct_pell     = mean(PCTPELL, na.rm = TRUE),
+                 mean_pct_complete = mean(pct_headline_complete, na.rm = TRUE),
+                 mean_suppressed   = if (has("n_headline_privacy_suppressed"))
+                   mean(n_headline_privacy_suppressed, na.rm = TRUE) else NA_real_),
+               by = pell_q][order(pell_q)]
+    fwrite(d3, out("d3_quality_vs_pell_quartile"))
+    fwrite(inst[, .(total = .N, valid_pell = sum(!is.na(pell_q)),
+                    excluded_pell = sum(is.na(pell_q)))], out("d3_pell_quartile_denominator"))
+    log_step("  D3: reporting vs Pell quartile written")
+
+    p_d3 <- ggplot(d3, aes(pell_q, mean_pct_complete, fill = pell_q)) +
+      geom_col() +
+      labs(title = "Do the schools serving the neediest students report less?",
+           subtitle = "Mean % of headline metrics populated, by Pell-share quartile",
+           x = NULL, y = "Mean % of headline metrics reported", fill = NULL) +
+      theme_minimal(base_size = 11) + theme(legend.position = "none")
+    save_fig(p_d3, "d3_reporting_vs_pell", 8, 5)
+  }
+
+  # D4 - panel attrition.
+  if (!is.null(panel) && any(panel$year_start >= 2015 & panel$year_start <= 2025)) {
+  panel <- panel[year_start >= 2015 & year_start <= 2025]
+  yrs <- sort(unique(panel$year_start))
+  d4_year <- panel[, .(institutions = uniqueN(UNITID)), by = year_start][order(year_start)]
+  fwrite(d4_year, out("d4a_institutions_per_year"))
+  log_step("  D4a: panel runs ", min(yrs), "-", max(yrs), "; ",
+           fnum(d4_year$institutions[1]), " -> ",
+           fnum(d4_year$institutions[nrow(d4_year)]), " institutions")
+
+  p_d4 <- ggplot(d4_year, aes(year_start, institutions)) +
+    geom_line(linewidth = 1, colour = "#0b5fa5") + geom_point(size = 2) +
+    scale_y_continuous(labels = comma) +
+    labs(title = "Institutions present in each yearly file",
+         subtitle = "2015-2025 file presence; absence does not establish closure",
+         x = "Source-file year", y = "Institutions") +
+    theme_minimal(base_size = 11)
+  save_fig(p_d4, "d4_panel_attrition", 9, 5)
+
+  if (all(c(2015, 2025) %in% yrs)) {
+    y_last   <- 2025L
+    y_prev   <- 2015L
+    last_ids <- unique(panel[year_start == y_last, UNITID])
+    prev     <- panel[year_start == y_prev]
+    prev[, exited    := !(UNITID %in% last_ids)]
+    prev[, size_band := size_bin_of(UGDS)]
+    d4 <- prev[, .(institutions = .N,
+                   n_absent_2025 = sum(exited),
+                   n_retained_2025 = sum(!exited),
+                   pct_absent_2025 = 100 * mean(exited)),
+               by = .(control_label, size_band)][order(-pct_absent_2025)]
+    fwrite(d4, out("d4b_exits_by_sector_size"))
+    log_step("  D4b: ", y_prev, " -> ", y_last, " exits written; overall ",
+             pct1(100 * mean(prev$exited)))
+  } else log_step("D4 endpoint comparison skipped: requires both 2015 and 2025")
+  }
+}
+
+log_step("streams complete. tables -> ", REPORTS_DIR, " ; figures -> ", FIGURES_DIR)
+log_step("Next: fill the acceptance boxes in EDA/reports/STREAM_PLAN.md, then ",
+         "write up section 7 of Docs/ASSIGNMENT_GUIDE.md.")
+# STREAMS_END

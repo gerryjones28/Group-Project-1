@@ -85,8 +85,8 @@ add_derived <- function(d, ps_flag = NULL) {
   # ---- ratios ---------------------------------------------------------------
   d[, tuition_in_out_gap  := TUITIONFEE_OUT - TUITIONFEE_IN]
   d[, net_price_income_gap:= net_price_highinc - net_price_lowinc]
-  d[, sticker_to_net      := TUITIONFEE_IN / net_price]
-  d[, grad_debt_to_earn   := grad_debt_mdn / earn_p10]
+  d[, sticker_to_net      := fifelse(net_price > 0, TUITIONFEE_IN / net_price, NA_real_)]
+  d[, grad_debt_to_earn   := fifelse(earn_p10 > 0, grad_debt_mdn / earn_p10, NA_real_)]
 
   # ---- normalisation inside peer groups (CONTROL x ICLEVEL) ---------------
   grp <- paste(d$CONTROL, d$ICLEVEL, sep = "|")
@@ -105,6 +105,7 @@ add_derived <- function(d, ps_flag = NULL) {
   } else d[, n_headline_privacy_suppressed := NA_integer_]
   d[, dq_tier := cut(pct_headline_complete,
                      breaks = c(-Inf, 50, 70, 90, Inf),
+                     right = FALSE,
                      labels = c("Very low (<50%)", "Low (50-70%)",
                                 "Medium (70-90%)", "High (>=90%)"))]
   d[]
@@ -129,6 +130,7 @@ INST_DQ_COLS <- c("n_headline_missing", "pct_headline_complete",
 log_step("reading institution snapshot (", basename(INST_LATEST), ") ...")
 raw_inst <- read_raw_ps(INST_LATEST, CORE_ALL, ps_cols = HEADLINE_SOURCES)
 inst <- add_derived(raw_inst$dt, raw_inst$ps_flag)
+stopifnot(!anyNA(inst$UNITID), !anyDuplicated(inst$UNITID))
 inst <- inst[, .SD, .SDcols = unique(c(CORE_ID, INST_LABEL_COLS, CORE_ACCESS, CORE_BODY,
                                       CORE_COST, CORE_OUT, CORE_EARN,
                                       INST_DERIVED_METRIC_COLS, INST_DQ_COLS))]
@@ -159,7 +161,8 @@ fos <- raw_fos$dt
 fos[, control_label    := decode(dict, "CONTROL", CONTROL)]
 fos[, cip2             := cip2_of(CIPCODE)]
 fos[, cip2_label       := cip2_label_of(CIPCODE)]
-fos[, debt_to_earn_1yr := DEBT_ALL_STGP_ANY_MDN / EARN_MDN_1YR]
+fos[, debt_to_earn_1yr := fifelse(EARN_MDN_1YR > 0,
+                                DEBT_ALL_STGP_ANY_MDN / EARN_MDN_1YR, NA_real_)]
 # Scorecard writes the literal text "NA" in UNITID for the institutions it does
 # not publish an identifier for (mostly foreign and closed schools), so those
 # rows cannot be joined to the institution file - flag them instead of dropping.
@@ -181,7 +184,8 @@ log_step("  program rows whose UNITID is the text 'NA' (unpublished institutions
 med <- function(x) if (all(is.na(x))) NA_real_ else median(x, na.rm = TRUE)
 cip_agg <- fos[!is.na(CIPCODE), .(
   programs              = .N,
-  institutions          = uniqueN(UNITID),
+  institutions          = uniqueN(UNITID, na.rm = TRUE),
+  programs_without_unitid = sum(is.na(UNITID)),
   completions_ipeds     = sum(IPEDSCOUNT2, na.rm = TRUE),
   median_debt_all       = med(DEBT_ALL_STGP_ANY_MDN),
   median_debt_pell      = med(DEBT_PELL_STGP_ANY_MDN),
@@ -217,6 +221,7 @@ panel <- rbindlist(lapply(merged_files, function(f) {
   d[, .SD, .SDcols = PANEL_COLS]
 }), use.names = TRUE)
 setorder(panel, year_start, UNITID)
+stopifnot(!anyNA(panel$UNITID), !anyDuplicated(panel[, .(year_start, UNITID)]))
 panel_csv <- file.path(SIMPLIFIED_DIR, "panel_core_1996_2025.csv")
 fwrite(panel, panel_csv, na = "")
 log_step("panel: ", fnum(nrow(panel)), " x ", ncol(panel), " (",

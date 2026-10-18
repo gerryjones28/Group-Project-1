@@ -112,8 +112,8 @@ audit_columns <- function(path, cols) {
   rbindlist(lapply(cols, function(cl) {
     v <- trimws(x[[cl]])
     n_blank <- sum(is.na(v) | v == "")
-    n_na    <- sum(v == "NA")
-    n_ps    <- sum(v == "PS") + sum(v == "PrivacySuppressed")
+    n_na    <- sum(v %in% NA_LIKE_TOKENS)
+    n_ps    <- sum(v %in% PS_TOKENS)
     keep    <- !(is.na(v) | v %in% MISSING_TOKENS)
     good    <- v[keep]
     num     <- suppressWarnings(as.numeric(good))
@@ -183,7 +183,7 @@ clean_with_ps <- function(v) {
 # ---------------------------------------------------------------------------
 
 # Identifier-like columns that must stay text (leading zeros matter).
-KEEP_TEXT <- c("ZIP", "OPEID6", "ST_FIPS")
+KEEP_TEXT <- c("ZIP", "OPEID", "OPEID6", "ST_FIPS", "CIPCODE")
 clean_named <- function(v, name) {
   v <- trimws(v)
   if (name %in% KEEP_TEXT) {

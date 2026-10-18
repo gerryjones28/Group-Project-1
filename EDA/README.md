@@ -1,5 +1,21 @@
 # EDA / data-simplification workspace
 
+> Audit update, October 18, 2026: this is the earlier write-up. Use
+> [AUDIT_REPORT](../Docs/AUDIT_REPORT.md), [student explanation](../Docs/STUDENT_EXPLANATION.md)
+> and [evidence register](../presentation/RESULTS_SUMMARY.md) for current status.
+> Raw data/extracts are absent locally; existing figures/tables are not newly reproduced.
+> The corrected implementation preserves all four streams. Updated DQ tier boundaries,
+> distinct counts and anomaly predicates require regeneration. Ordinary missingness and
+> privacy suppression differ; applicability limits whole-population coverage comparisons.
+
+> Audit update, October 18, 2026: this is the earlier write-up. Use
+> [AUDIT_REPORT](../Docs/AUDIT_REPORT.md), [student explanation](../Docs/STUDENT_EXPLANATION.md)
+> and [evidence register](../presentation/RESULTS_SUMMARY.md) for current status.
+> Raw data/extracts are absent locally; existing figures/tables are not newly reproduced.
+> The corrected implementation preserves all four streams. Updated DQ tier boundaries,
+> distinct counts and anomaly predicates require regeneration. Ordinary missingness and
+> privacy suppression differ; applicability limits whole-population coverage comparisons.
+
 **Group Project I - The College Scorecard Dataset.**
 Everything in this folder was produced from `data/College_Scorecard_Raw_Data_06032026/`
 by the three scripts in `scripts/`. Nothing here overwrites the raw data.

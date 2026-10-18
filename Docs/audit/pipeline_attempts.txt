@@ -1,0 +1,79 @@
+
+ATTEMPT: 01_size_limits_check.R 
+During startup - Warning messages:
+1: Setting LC_COLLATE=C.UTF-8 failed 
+2: Setting LC_CTYPE=C.UTF-8 failed 
+3: Setting LC_MONETARY=C.UTF-8 failed 
+4: Setting LC_TIME=C.UTF-8 failed 
+Error: Missing the most-recent Scorecard snapshots:
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Institution.csv
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Field-of-Study.csv
+
+The College Scorecard downloads are 60-150 MB per file and are not stored in this git repo.
+See README.md -> "Getting the data" (and EDA/README.md) for the download steps.
+Execution halted 
+Exit: 1 
+
+ATTEMPT: 02_build_simplified_data.R 
+During startup - Warning messages:
+1: Setting LC_COLLATE=C.UTF-8 failed 
+2: Setting LC_CTYPE=C.UTF-8 failed 
+3: Setting LC_MONETARY=C.UTF-8 failed 
+4: Setting LC_TIME=C.UTF-8 failed 
+Error: Missing the Scorecard inputs:
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Institution.csv
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Field-of-Study.csv
+
+The College Scorecard downloads are 60-150 MB per file and are not stored in this git repo.
+See README.md -> "Getting the data" (and EDA/README.md) for the download steps.
+Execution halted 
+Exit: 1 
+
+ATTEMPT: 03_eda_quality_report.R 
+During startup - Warning messages:
+1: Setting LC_COLLATE=C.UTF-8 failed 
+2: Setting LC_CTYPE=C.UTF-8 failed 
+3: Setting LC_MONETARY=C.UTF-8 failed 
+4: Setting LC_TIME=C.UTF-8 failed 
+Error: Missing the Scorecard inputs:
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Institution.csv
+  C:\Group-Project-1/data/College_Scorecard_Raw_Data_06032026/Most-Recent-Cohorts-Field-of-Study.csv
+
+The College Scorecard downloads are 60-150 MB per file and are not stored in this git repo.
+See README.md -> "Getting the data" (and EDA/README.md) for the download steps.
+Execution halted 
+Exit: 1 
+
+ATTEMPT: 04_streams.R 
+During startup - Warning messages:
+1: Setting LC_COLLATE=C.UTF-8 failed 
+2: Setting LC_CTYPE=C.UTF-8 failed 
+3: Setting LC_MONETARY=C.UTF-8 failed 
+4: Setting LC_TIME=C.UTF-8 failed 
+Error: Missing the institution extract:
+  C:\Group-Project-1/EDA/simplified/institution_core_latest.csv
+
+The College Scorecard downloads are 60-150 MB per file and are not stored in this git repo.
+See README.md -> "Getting the data" (and EDA/README.md) for the download steps, then run script 02 first.
+Execution halted 
+Exit: 1 
+
+R version 4.5.2 (2025-10-31 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26200)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] C
+system code page: 65001
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.5.2
